@@ -1,0 +1,38 @@
+# OS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node
+node_modules/
+frontend/node_modules/
+
+# Build / runtime
+*.log
+*.sqlite
+*.db
+
+# IDE
+.vscode/
+.idea/
+
+# Env files
+.env
+.env.*
+
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# Temp
+*.tmp
+*.swp

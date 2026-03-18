@@ -1,0 +1,4 @@
+﻿Shareable package notes:
+1) This copy intentionally excludes runtime data/logs and all local databases.
+2) No exchange API keys or email credentials are included.
+3) Start backend once to auto-create a fresh local SQLite database.

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>套利交易工具</title>
+    <script>
+      // Suppress chrome-extension errors from React dev overlay
+      window.addEventListener('error', function(e) {
+        if (e.filename && e.filename.startsWith('chrome-extension://')) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return true;
+        }
+      }, true);
+      window.addEventListener('unhandledrejection', function(e) {
+        var stack = (e.reason && e.reason.stack) || '';
+        if (stack.indexOf('chrome-extension://') !== -1) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+        }
+      }, true);
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
