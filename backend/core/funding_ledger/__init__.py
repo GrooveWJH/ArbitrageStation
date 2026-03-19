@@ -1,26 +1,109 @@
-from . import _part1 as _p1
-from . import _part2 as _p2
-from . import _part3 as _p3
-from . import _part4 as _p4
-from . import _part5 as _p5
+"""Explicit package exports (static, no dynamic section aggregation)."""
 
-_PARTS = (_p1, _p2, _p3, _p4, _p5,)
+from .ingest import (
+    AttributionCandidate,
+    DEFAULT_LOOKBACK_HOURS,
+    Decimal,
+    Exchange,
+    FUNDING_INTERVAL_HOURS,
+    FundingAssignment,
+    FundingCursor,
+    FundingLedger,
+    IntegrityError,
+    Position,
+    ROUND_HALF_UP,
+    Session,
+    SessionLocal,
+    Strategy,
+    _build_event_hash,
+    _cursor_key,
+    _dedupe_funding_rows,
+    _fetch_exchange_funding_rows,
+    _fetch_gate_funding_rows,
+    _fetch_mexc_funding_rows,
+    _get_cursor,
+    _make_source_ref,
+    _normalized_to_binance_symbol,
+    _normalized_to_okx_inst_id,
+    _rows_from_ccxt_funding_history,
+    _upsert_cursor,
+    annotations,
+    assign_funding_event,
+    build_assignment_candidates,
+    date,
+    datetime,
+    get_instance,
+    hashlib,
+    ingest_exchange_funding_events,
+    is_exchange_banned,
+    json,
+    logger,
+    logging,
+    normalize_amount,
+    normalize_symbol,
+    resolve_assignment_allocations,
+    settlement_interval_hours,
+    sqlite_insert,
+    timedelta,
+    timezone,
+    to_utc_datetime,
+    upsert_funding_event,
+    utc_fromtimestamp,
+    utc_now,
+    ingest_all_active_exchanges,
+    run_funding_ingest_cycle,
+)
 
-def __getattr__(name: str):
-    for _mod in _PARTS:
-        if hasattr(_mod, name):
-            return getattr(_mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-def __dir__() -> list[str]:
-    names = set(globals().keys())
-    for _mod in _PARTS:
-        names.update(k for k in _mod.__dict__.keys() if not k.startswith("__"))
-    return sorted(names)
-
-__all__ = sorted({
-    k
-    for _mod in _PARTS
-    for k in _mod.__dict__.keys()
-    if not k.startswith("__")
-})
+__all__ = [
+    "AttributionCandidate",
+    "DEFAULT_LOOKBACK_HOURS",
+    "Decimal",
+    "Exchange",
+    "FUNDING_INTERVAL_HOURS",
+    "FundingAssignment",
+    "FundingCursor",
+    "FundingLedger",
+    "IntegrityError",
+    "Position",
+    "ROUND_HALF_UP",
+    "Session",
+    "SessionLocal",
+    "Strategy",
+    "_build_event_hash",
+    "_cursor_key",
+    "_dedupe_funding_rows",
+    "_fetch_exchange_funding_rows",
+    "_fetch_gate_funding_rows",
+    "_fetch_mexc_funding_rows",
+    "_get_cursor",
+    "_make_source_ref",
+    "_normalized_to_binance_symbol",
+    "_normalized_to_okx_inst_id",
+    "_rows_from_ccxt_funding_history",
+    "_upsert_cursor",
+    "annotations",
+    "assign_funding_event",
+    "build_assignment_candidates",
+    "date",
+    "datetime",
+    "get_instance",
+    "hashlib",
+    "ingest_exchange_funding_events",
+    "is_exchange_banned",
+    "json",
+    "logger",
+    "logging",
+    "normalize_amount",
+    "normalize_symbol",
+    "resolve_assignment_allocations",
+    "settlement_interval_hours",
+    "sqlite_insert",
+    "timedelta",
+    "timezone",
+    "to_utc_datetime",
+    "upsert_funding_event",
+    "utc_fromtimestamp",
+    "utc_now",
+    "ingest_all_active_exchanges",
+    "run_funding_ingest_cycle",
+]

@@ -9,7 +9,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from api.spot_basis import _build_open_portfolio_preview  # noqa: E402
+from core.spot_basis_runtime import _build_open_portfolio_preview  # noqa: E402
 
 
 class SpotBasisEntryBasisPositiveTests(unittest.TestCase):

@@ -1,0 +1,4 @@
+# Relative paths from backend/ that are temporarily allowed to exceed line limit.
+# Format: one path per line, comments start with '#'.
+# Owner: backend-refactor
+# Sunset: 2026-06-30

@@ -1,0 +1,1 @@
+"""Spread monitor infra adapters."""

@@ -1,25 +1,115 @@
-from . import _part1 as _p1
-from . import _part2 as _p2
-from . import _part3 as _p3
-from . import _part4 as _p4
+"""Explicit package exports (static, no dynamic section aggregation)."""
 
-_PARTS = (_p1, _p2, _p3, _p4,)
+from .bootstrap import (
+    AppConfig,
+    AutoTradeConfig,
+    BacktestDataJob,
+    Base,
+    Boolean,
+    Column,
+    DATABASE_URL,
+    EmailConfig,
+    EquitySnapshot,
+    Exchange,
+    Float,
+    ForeignKey,
+    FundingAssignment,
+    FundingCursor,
+    FundingLedger,
+    FundingRate,
+    Index,
+    Integer,
+    MarketSnapshot15m,
+    Numeric,
+    PairUniverseDaily,
+    Path,
+    PnlV2DailyReconcile,
+    Position,
+    RiskRule,
+    SADateTime,
+    SessionLocal,
+    SpotBasisAutoConfig,
+    SpreadPosition,
+    Strategy,
+    String,
+    Text,
+    TradeLog,
+    TypeDecorator,
+    UTC,
+    UTCDateTime,
+    UniqueConstraint,
+    _DEFAULT_DATABASE_URL,
+    _DEFAULT_DB_PATH,
+    _engine_kwargs,
+    _maybe_fix_gbk_utf8_mojibake,
+    _migrate_columns,
+    create_engine,
+    declarative_base,
+    engine,
+    get_db,
+    inspect,
+    os,
+    relationship,
+    sessionmaker,
+    text,
+    utc_now,
+    _repair_mojibake_seed_data,
+    init_db,
+)
 
-def __getattr__(name: str):
-    for _mod in _PARTS:
-        if hasattr(_mod, name):
-            return getattr(_mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-def __dir__() -> list[str]:
-    names = set(globals().keys())
-    for _mod in _PARTS:
-        names.update(k for k in _mod.__dict__.keys() if not k.startswith("__"))
-    return sorted(names)
-
-__all__ = sorted({
-    k
-    for _mod in _PARTS
-    for k in _mod.__dict__.keys()
-    if not k.startswith("__")
-})
+__all__ = [
+    "AppConfig",
+    "AutoTradeConfig",
+    "BacktestDataJob",
+    "Base",
+    "Boolean",
+    "Column",
+    "DATABASE_URL",
+    "EmailConfig",
+    "EquitySnapshot",
+    "Exchange",
+    "Float",
+    "ForeignKey",
+    "FundingAssignment",
+    "FundingCursor",
+    "FundingLedger",
+    "FundingRate",
+    "Index",
+    "Integer",
+    "MarketSnapshot15m",
+    "Numeric",
+    "PairUniverseDaily",
+    "Path",
+    "PnlV2DailyReconcile",
+    "Position",
+    "RiskRule",
+    "SADateTime",
+    "SessionLocal",
+    "SpotBasisAutoConfig",
+    "SpreadPosition",
+    "Strategy",
+    "String",
+    "Text",
+    "TradeLog",
+    "TypeDecorator",
+    "UTC",
+    "UTCDateTime",
+    "UniqueConstraint",
+    "_DEFAULT_DATABASE_URL",
+    "_DEFAULT_DB_PATH",
+    "_engine_kwargs",
+    "_maybe_fix_gbk_utf8_mojibake",
+    "_migrate_columns",
+    "create_engine",
+    "declarative_base",
+    "engine",
+    "get_db",
+    "inspect",
+    "os",
+    "relationship",
+    "sessionmaker",
+    "text",
+    "utc_now",
+    "_repair_mojibake_seed_data",
+    "init_db",
+]

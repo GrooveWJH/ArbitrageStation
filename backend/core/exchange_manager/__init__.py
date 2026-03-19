@@ -1,29 +1,145 @@
-from . import _part1 as _p1
-from . import _part2 as _p2
-from . import _part3 as _p3
-from . import _part4 as _p4
-from . import _part5 as _p5
-from . import _part6 as _p6
-from . import _part7 as _p7
-from . import _part8 as _p8
+"""Explicit package exports (static, no dynamic section aggregation)."""
 
-_PARTS = (_p1, _p2, _p3, _p4, _p5, _p6, _p7, _p8,)
+from .hedge_orders import (
+    Any,
+    Exchange,
+    Optional,
+    Session,
+    _ASSET_USDT_PRICE_CACHE,
+    _ASSET_USDT_PRICE_TTL_SECS,
+    _STABLE_USD_ASSETS,
+    _VIP0_TAKER_FEES,
+    _balance_to_usdt_value,
+    _base_to_contracts,
+    _binance_native_symbol,
+    _build_ccxt_balance_from_binance_account,
+    _check_and_mark_ban,
+    _credential_signature,
+    _crypto_symbol_cache,
+    _ensure_cross_margin_mode,
+    _ensure_gate_cross_margin_mode_strict,
+    _exchange_ban_until,
+    _exchange_cred_sig,
+    _exchange_instances,
+    _extract_balance_totals,
+    _extract_interval_hours,
+    _fee_cache,
+    _fetch_ticker_last_price_cached,
+    _hedge_order_params,
+    _is_binance_spot_451_error,
+    _is_crypto_market,
+    _is_missing_credential_error,
+    _is_timestamp_error,
+    _max_leverage_cache,
+    _resolve_asset_usdt_price,
+    _spot_cred_sig,
+    _spot_instances,
+    _time,
+    _to_float,
+    build_ccxt_instance,
+    ccxt,
+    close_position,
+    close_spot_position,
+    extract_usdt_balance,
+    fetch_exchange_total_equity_usdt,
+    fetch_funding_income,
+    fetch_funding_rates,
+    fetch_max_leverage,
+    fetch_ohlcv,
+    fetch_spot_balance_safe,
+    fetch_spot_ohlcv,
+    fetch_spot_ticker,
+    fetch_spot_volumes,
+    fetch_taker_fee,
+    fetch_ticker,
+    fetch_volumes,
+    get_instance,
+    get_spot_instance,
+    get_supported_exchanges,
+    get_vip0_taker_fee,
+    invalidate_instance,
+    is_exchange_banned,
+    logger,
+    logging,
+    mark_exchange_banned,
+    place_order,
+    place_spot_order,
+    re,
+    resync_time_differences,
+    set_leverage_for_symbol,
+    setup_hedge_mode,
+    place_hedge_order,
+    close_hedge_position,
+)
 
-def __getattr__(name: str):
-    for _mod in _PARTS:
-        if hasattr(_mod, name):
-            return getattr(_mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-def __dir__() -> list[str]:
-    names = set(globals().keys())
-    for _mod in _PARTS:
-        names.update(k for k in _mod.__dict__.keys() if not k.startswith("__"))
-    return sorted(names)
-
-__all__ = sorted({
-    k
-    for _mod in _PARTS
-    for k in _mod.__dict__.keys()
-    if not k.startswith("__")
-})
+__all__ = [
+    "Any",
+    "Exchange",
+    "Optional",
+    "Session",
+    "_ASSET_USDT_PRICE_CACHE",
+    "_ASSET_USDT_PRICE_TTL_SECS",
+    "_STABLE_USD_ASSETS",
+    "_VIP0_TAKER_FEES",
+    "_balance_to_usdt_value",
+    "_base_to_contracts",
+    "_binance_native_symbol",
+    "_build_ccxt_balance_from_binance_account",
+    "_check_and_mark_ban",
+    "_credential_signature",
+    "_crypto_symbol_cache",
+    "_ensure_cross_margin_mode",
+    "_ensure_gate_cross_margin_mode_strict",
+    "_exchange_ban_until",
+    "_exchange_cred_sig",
+    "_exchange_instances",
+    "_extract_balance_totals",
+    "_extract_interval_hours",
+    "_fee_cache",
+    "_fetch_ticker_last_price_cached",
+    "_hedge_order_params",
+    "_is_binance_spot_451_error",
+    "_is_crypto_market",
+    "_is_missing_credential_error",
+    "_is_timestamp_error",
+    "_max_leverage_cache",
+    "_resolve_asset_usdt_price",
+    "_spot_cred_sig",
+    "_spot_instances",
+    "_time",
+    "_to_float",
+    "build_ccxt_instance",
+    "ccxt",
+    "close_position",
+    "close_spot_position",
+    "extract_usdt_balance",
+    "fetch_exchange_total_equity_usdt",
+    "fetch_funding_income",
+    "fetch_funding_rates",
+    "fetch_max_leverage",
+    "fetch_ohlcv",
+    "fetch_spot_balance_safe",
+    "fetch_spot_ohlcv",
+    "fetch_spot_ticker",
+    "fetch_spot_volumes",
+    "fetch_taker_fee",
+    "fetch_ticker",
+    "fetch_volumes",
+    "get_instance",
+    "get_spot_instance",
+    "get_supported_exchanges",
+    "get_vip0_taker_fee",
+    "invalidate_instance",
+    "is_exchange_banned",
+    "logger",
+    "logging",
+    "mark_exchange_banned",
+    "place_order",
+    "place_spot_order",
+    "re",
+    "resync_time_differences",
+    "set_leverage_for_symbol",
+    "setup_hedge_mode",
+    "place_hedge_order",
+    "close_hedge_position",
+]

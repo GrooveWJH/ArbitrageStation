@@ -11,7 +11,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from models.database import init_db, SessionLocal, AppConfig
+from db import SessionLocal, init_db
+from db.models import AppConfig
 from domains.exchanges.router import router as exchanges_router
 from domains.dashboard.router import router as dashboard_router
 from domains.trading.router import router as trading_router
@@ -28,18 +29,25 @@ from domains.websocket.router import (
     start_broadcast_loop,
     start_price_broadcast_loop,
 )
-from api.pnl_v2 import run_daily_pnl_v2_reconcile_job
-from core.data_collector import collect_funding_rates, update_position_prices
-from core.spread_stats import refresh_spread_stats
-from core.risk_manager import run_risk_checks
-from core.exchange_manager import resync_time_differences
-from core.equity_collector import collect_equity_snapshot
-from core.spread_arb_engine import run_spread_arb, update_spread_position_prices, setup_all_hedge_modes
-from core.spot_basis_auto_engine import run_spot_basis_auto_open_cycle
-from core.spot_basis_reconciler import run_spot_basis_reconcile_cycle
-from core.spot_basis_data_layer import schedule_collect_recent_snapshots, schedule_daily_universe_freeze
-from core.funding_ledger import run_funding_ingest_cycle
-from core.okx_private_ws import start_okx_private_ws_supervisor, stop_okx_private_ws_supervisor
+from infra.tasks.gateway import (
+    collect_equity_snapshot,
+    collect_funding_rates,
+    refresh_spread_stats,
+    resync_time_differences,
+    run_daily_pnl_v2_reconcile_job,
+    run_funding_ingest_cycle,
+    run_risk_checks,
+    run_spot_basis_auto_open_cycle,
+    run_spot_basis_reconcile_cycle,
+    run_spread_arb,
+    schedule_collect_recent_snapshots,
+    schedule_daily_universe_freeze,
+    setup_all_hedge_modes,
+    start_okx_private_ws_supervisor,
+    stop_okx_private_ws_supervisor,
+    update_position_prices,
+    update_spread_position_prices,
+)
 
 logging.basicConfig(
     level=logging.INFO,

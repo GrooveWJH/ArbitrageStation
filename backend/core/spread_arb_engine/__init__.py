@@ -1,25 +1,115 @@
-from . import _part1 as _p1
-from . import _part2 as _p2
-from . import _part3 as _p3
-from . import _part4 as _p4
+"""Explicit package exports (static, no dynamic section aggregation)."""
 
-_PARTS = (_p1, _p2, _p3, _p4,)
+from .orchestrator import (
+    AutoTradeConfig,
+    Exchange,
+    MAX_ENTRY_RETRIES,
+    MIN_NOTIONAL_USD,
+    Position,
+    SPREAD_PREFIX,
+    SessionLocal,
+    SpreadPosition,
+    Strategy,
+    _RECOVER_COOLDOWN_SECS,
+    _calc_available_balance,
+    _cancel_leg,
+    _check_exits,
+    _close_leg_with_retry,
+    _close_spread_position,
+    _compute_z,
+    _count_active,
+    _ensure_hedge_modes,
+    _entry_lock,
+    _extract_fill,
+    _get_config,
+    _get_exchange_free_usdt,
+    _get_price,
+    _get_stats,
+    _in_cooldown,
+    _last_recover_attempt,
+    _place_with_retry,
+    _recover_half_closed_positions,
+    _scan_opportunities,
+    _secs_to_funding,
+    _try_open_position,
+    _verify_leg_closed,
+    close_hedge_position,
+    date,
+    datetime,
+    fast_price_cache,
+    funding_rate_cache,
+    get_instance,
+    logger,
+    logging,
+    place_hedge_order,
+    setup_hedge_mode,
+    spread_stats_cache,
+    threading,
+    time,
+    timedelta,
+    timezone,
+    utc_now,
+    run_spread_arb,
+    _exit_lock,
+    trigger_spread_exits,
+    trigger_spread_entries,
+    update_spread_position_prices,
+    setup_all_hedge_modes,
+)
 
-def __getattr__(name: str):
-    for _mod in _PARTS:
-        if hasattr(_mod, name):
-            return getattr(_mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-def __dir__() -> list[str]:
-    names = set(globals().keys())
-    for _mod in _PARTS:
-        names.update(k for k in _mod.__dict__.keys() if not k.startswith("__"))
-    return sorted(names)
-
-__all__ = sorted({
-    k
-    for _mod in _PARTS
-    for k in _mod.__dict__.keys()
-    if not k.startswith("__")
-})
+__all__ = [
+    "AutoTradeConfig",
+    "Exchange",
+    "MAX_ENTRY_RETRIES",
+    "MIN_NOTIONAL_USD",
+    "Position",
+    "SPREAD_PREFIX",
+    "SessionLocal",
+    "SpreadPosition",
+    "Strategy",
+    "_RECOVER_COOLDOWN_SECS",
+    "_calc_available_balance",
+    "_cancel_leg",
+    "_check_exits",
+    "_close_leg_with_retry",
+    "_close_spread_position",
+    "_compute_z",
+    "_count_active",
+    "_ensure_hedge_modes",
+    "_entry_lock",
+    "_extract_fill",
+    "_get_config",
+    "_get_exchange_free_usdt",
+    "_get_price",
+    "_get_stats",
+    "_in_cooldown",
+    "_last_recover_attempt",
+    "_place_with_retry",
+    "_recover_half_closed_positions",
+    "_scan_opportunities",
+    "_secs_to_funding",
+    "_try_open_position",
+    "_verify_leg_closed",
+    "close_hedge_position",
+    "date",
+    "datetime",
+    "fast_price_cache",
+    "funding_rate_cache",
+    "get_instance",
+    "logger",
+    "logging",
+    "place_hedge_order",
+    "setup_hedge_mode",
+    "spread_stats_cache",
+    "threading",
+    "time",
+    "timedelta",
+    "timezone",
+    "utc_now",
+    "run_spread_arb",
+    "_exit_lock",
+    "trigger_spread_exits",
+    "trigger_spread_entries",
+    "update_spread_position_prices",
+    "setup_all_hedge_modes",
+]

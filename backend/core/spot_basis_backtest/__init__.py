@@ -1,24 +1,97 @@
-from . import _part1 as _p1
-from . import _part2 as _p2
-from . import _part3 as _p3
+"""Explicit package exports (static, no dynamic section aggregation)."""
 
-_PARTS = (_p1, _p2, _p3,)
+from .engine import (
+    annotations,
+    date,
+    datetime,
+    timedelta,
+    timezone,
+    bisect,
+    dataclass,
+    utc_now,
+    SimpleNamespace,
+    Callable,
+    Optional,
+    Session,
+    _build_row_id,
+    _compute_funding_stability,
+    _strict_metrics_for_row,
+    get_vip0_taker_fee,
+    _build_current_state,
+    _build_rebalance_delta_plan,
+    _build_target_state,
+    Exchange,
+    FundingRate,
+    MarketSnapshot15m,
+    PairUniverseDaily,
+    BUCKET_SECS,
+    FUNDING_STABILITY_WINDOW_SECS,
+    _to_float,
+    _to_int,
+    _parse_date,
+    _dt_to_epoch,
+    _iter_bucket_epochs,
+    PriceSeries,
+    FundingSeries,
+    BacktestParams,
+    _build_runtime_cfg,
+    _latest_price,
+    _infer_interval_hours,
+    _funding_snapshot,
+    _load_daily_universe,
+    _load_price_indices,
+    _load_funding_indices,
+    _select_target_rows,
+    _sum_notional,
+    _close_position_with_fee,
+    _build_backtest_result,
+    run_event_backtest,
+)
 
-def __getattr__(name: str):
-    for _mod in _PARTS:
-        if hasattr(_mod, name):
-            return getattr(_mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-def __dir__() -> list[str]:
-    names = set(globals().keys())
-    for _mod in _PARTS:
-        names.update(k for k in _mod.__dict__.keys() if not k.startswith("__"))
-    return sorted(names)
-
-__all__ = sorted({
-    k
-    for _mod in _PARTS
-    for k in _mod.__dict__.keys()
-    if not k.startswith("__")
-})
+__all__ = [
+    "annotations",
+    "date",
+    "datetime",
+    "timedelta",
+    "timezone",
+    "bisect",
+    "dataclass",
+    "utc_now",
+    "SimpleNamespace",
+    "Callable",
+    "Optional",
+    "Session",
+    "_build_row_id",
+    "_compute_funding_stability",
+    "_strict_metrics_for_row",
+    "get_vip0_taker_fee",
+    "_build_current_state",
+    "_build_rebalance_delta_plan",
+    "_build_target_state",
+    "Exchange",
+    "FundingRate",
+    "MarketSnapshot15m",
+    "PairUniverseDaily",
+    "BUCKET_SECS",
+    "FUNDING_STABILITY_WINDOW_SECS",
+    "_to_float",
+    "_to_int",
+    "_parse_date",
+    "_dt_to_epoch",
+    "_iter_bucket_epochs",
+    "PriceSeries",
+    "FundingSeries",
+    "BacktestParams",
+    "_build_runtime_cfg",
+    "_latest_price",
+    "_infer_interval_hours",
+    "_funding_snapshot",
+    "_load_daily_universe",
+    "_load_price_indices",
+    "_load_funding_indices",
+    "_select_target_rows",
+    "_sum_notional",
+    "_close_position_with_fee",
+    "_build_backtest_result",
+    "run_event_backtest",
+]

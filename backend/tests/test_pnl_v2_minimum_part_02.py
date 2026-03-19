@@ -15,7 +15,7 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from core.time_utils import utc_now  # noqa: E402
-from api.pnl_v2 import (  # noqa: E402
+from domains.pnl_v2 import (  # noqa: E402
     _fetch_exchange_entry_for_position,
     _serialize_strategy_row,
     get_pnl_export_v2,
@@ -25,7 +25,7 @@ from api.pnl_v2 import (  # noqa: E402
     get_strategy_pnl_v2,
     run_daily_pnl_v2_reconcile,
 )
-from api.dashboard import get_strategies  # noqa: E402
+from domains.dashboard.router_overview import get_strategies  # noqa: E402
 from core.funding_ledger import _rows_from_ccxt_funding_history, upsert_funding_event  # noqa: E402
 from core.pnl_v2_logic import (  # noqa: E402
     AttributionCandidate,
@@ -134,7 +134,7 @@ class PnlV2MinimumTestsPart2(unittest.TestCase):
             def fetch_positions(self, *_args, **_kwargs):
                 return {"code": 0, "msg": "ok", "data": []}
 
-        with patch("api.pnl_v2.get_instance", return_value=DummyInst()):
+        with patch("infra.pnl_v2.runtime.strategies_api.get_instance", return_value=DummyInst()):
             entry, sync_at = _fetch_exchange_entry_for_position(ex=ex, position=pos)
 
         self.assertIsNone(entry)
@@ -168,7 +168,7 @@ class PnlV2MinimumTestsPart2(unittest.TestCase):
                     },
                 ]
 
-        with patch("api.pnl_v2.get_instance", return_value=DummyInst()):
+        with patch("infra.pnl_v2.runtime.strategies_api.get_instance", return_value=DummyInst()):
             entry, sync_at = _fetch_exchange_entry_for_position(ex=ex, position=pos)
 
         self.assertAlmostEqual(float(entry or 0.0), 101.25, places=6)

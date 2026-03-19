@@ -1,24 +1,81 @@
-from . import _part1 as _p1
-from . import _part2 as _p2
-from . import _part3 as _p3
+"""Explicit package exports (static, no dynamic section aggregation)."""
 
-_PARTS = (_p1, _p2, _p3,)
+from .runner import (
+    Exchange,
+    Position,
+    SessionLocal,
+    Strategy,
+    _ENTRY_PRICE_SYNC_REL_DIFF,
+    _LAST_SUMMARY,
+    _LAST_TS,
+    _MIN_RECOVER_BASE,
+    _MIN_RECOVER_NOTIONAL_USD,
+    _RECON_INTERVAL_SECS,
+    _RECON_LOCK,
+    _SIZE_RATIO_MAX,
+    _SIZE_RATIO_MIN,
+    _STABLE_ASSETS,
+    _close_active_or_closing_without_open_legs,
+    _collect_live_perp_shorts,
+    _collect_live_spot_assets,
+    _extract_balance_totals,
+    _extract_base_asset_from_symbol,
+    _load_tracked_open_legs,
+    _rel_diff,
+    _set_last_summary,
+    _spot_asset_usdt_price,
+    _sync_recovered_strategy_entry_prices,
+    _to_float,
+    annotations,
+    fetch_spot_balance_safe,
+    fetch_spot_ticker,
+    fetch_ticker,
+    get_instance,
+    get_last_spot_basis_reconcile_summary,
+    logger,
+    logging,
+    threading,
+    time,
+    utc_now,
+    run_spot_basis_reconcile_cycle,
+)
 
-def __getattr__(name: str):
-    for _mod in _PARTS:
-        if hasattr(_mod, name):
-            return getattr(_mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-def __dir__() -> list[str]:
-    names = set(globals().keys())
-    for _mod in _PARTS:
-        names.update(k for k in _mod.__dict__.keys() if not k.startswith("__"))
-    return sorted(names)
-
-__all__ = sorted({
-    k
-    for _mod in _PARTS
-    for k in _mod.__dict__.keys()
-    if not k.startswith("__")
-})
+__all__ = [
+    "Exchange",
+    "Position",
+    "SessionLocal",
+    "Strategy",
+    "_ENTRY_PRICE_SYNC_REL_DIFF",
+    "_LAST_SUMMARY",
+    "_LAST_TS",
+    "_MIN_RECOVER_BASE",
+    "_MIN_RECOVER_NOTIONAL_USD",
+    "_RECON_INTERVAL_SECS",
+    "_RECON_LOCK",
+    "_SIZE_RATIO_MAX",
+    "_SIZE_RATIO_MIN",
+    "_STABLE_ASSETS",
+    "_close_active_or_closing_without_open_legs",
+    "_collect_live_perp_shorts",
+    "_collect_live_spot_assets",
+    "_extract_balance_totals",
+    "_extract_base_asset_from_symbol",
+    "_load_tracked_open_legs",
+    "_rel_diff",
+    "_set_last_summary",
+    "_spot_asset_usdt_price",
+    "_sync_recovered_strategy_entry_prices",
+    "_to_float",
+    "annotations",
+    "fetch_spot_balance_safe",
+    "fetch_spot_ticker",
+    "fetch_ticker",
+    "get_instance",
+    "get_last_spot_basis_reconcile_summary",
+    "logger",
+    "logging",
+    "threading",
+    "time",
+    "utc_now",
+    "run_spot_basis_reconcile_cycle",
+]

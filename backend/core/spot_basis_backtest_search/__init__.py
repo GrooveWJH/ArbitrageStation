@@ -1,23 +1,63 @@
-from . import _part1 as _p1
-from . import _part2 as _p2
+"""Explicit package exports (static, no dynamic section aggregation)."""
 
-_PARTS = (_p1, _p2,)
+from .walk_forward import (
+    BacktestParams,
+    BacktestSearchParams,
+    Callable,
+    Optional,
+    Session,
+    _build_backtest_params,
+    _build_combo_space,
+    _clean_list_float,
+    _clean_list_int,
+    _date_windows,
+    _parse_date,
+    _stability_score,
+    _summary_metrics,
+    _to_float,
+    _to_int,
+    _train_objective,
+    annotations,
+    dataclass,
+    date,
+    datetime,
+    itertools,
+    random,
+    run_event_backtest,
+    sqrt,
+    timedelta,
+    timezone,
+    utc_now,
+    run_walk_forward_search,
+)
 
-def __getattr__(name: str):
-    for _mod in _PARTS:
-        if hasattr(_mod, name):
-            return getattr(_mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-def __dir__() -> list[str]:
-    names = set(globals().keys())
-    for _mod in _PARTS:
-        names.update(k for k in _mod.__dict__.keys() if not k.startswith("__"))
-    return sorted(names)
-
-__all__ = sorted({
-    k
-    for _mod in _PARTS
-    for k in _mod.__dict__.keys()
-    if not k.startswith("__")
-})
+__all__ = [
+    "BacktestParams",
+    "BacktestSearchParams",
+    "Callable",
+    "Optional",
+    "Session",
+    "_build_backtest_params",
+    "_build_combo_space",
+    "_clean_list_float",
+    "_clean_list_int",
+    "_date_windows",
+    "_parse_date",
+    "_stability_score",
+    "_summary_metrics",
+    "_to_float",
+    "_to_int",
+    "_train_objective",
+    "annotations",
+    "dataclass",
+    "date",
+    "datetime",
+    "itertools",
+    "random",
+    "run_event_backtest",
+    "sqrt",
+    "timedelta",
+    "timezone",
+    "utc_now",
+    "run_walk_forward_search",
+]

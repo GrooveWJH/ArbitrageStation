@@ -1,23 +1,95 @@
-from . import _part1 as _p1
-from . import _part2 as _p2
+"""Explicit package exports (static, no dynamic section aggregation)."""
 
-_PARTS = (_p1, _p2,)
+from .market_prices import (
+    Exchange,
+    FundingRate,
+    Position,
+    Session,
+    SessionLocal,
+    ThreadPoolExecutor,
+    _SPOT_FAST_PRICE_TTL_SECS,
+    _VOLUME_TTL_SECS,
+    _collect_one_exchange,
+    _fetch_one_position_price,
+    _spot_fast_price_ts,
+    _spot_volume_cache_ts,
+    _volume_cache_ts,
+    as_completed,
+    collect_funding_rates,
+    date,
+    datetime,
+    exchange_map_cache,
+    fast_price_cache,
+    fetch_funding_rates,
+    fetch_spot_ticker,
+    fetch_spot_volumes,
+    fetch_ticker,
+    fetch_volumes,
+    funding_rate_cache,
+    get_cached_exchange_map,
+    get_spot_instance,
+    get_spread_stats_cache,
+    is_exchange_banned,
+    logger,
+    logging,
+    spot_fast_price_cache,
+    spot_volume_cache,
+    spread_stats_cache,
+    time,
+    timedelta,
+    timezone,
+    utc_now,
+    volume_cache,
+    update_position_prices,
+    get_latest_rates_flat,
+    _fetch_tickers_for_exchange,
+    _fetch_spot_tickers_for_exchange,
+    update_fast_prices,
+)
 
-def __getattr__(name: str):
-    for _mod in _PARTS:
-        if hasattr(_mod, name):
-            return getattr(_mod, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
-
-def __dir__() -> list[str]:
-    names = set(globals().keys())
-    for _mod in _PARTS:
-        names.update(k for k in _mod.__dict__.keys() if not k.startswith("__"))
-    return sorted(names)
-
-__all__ = sorted({
-    k
-    for _mod in _PARTS
-    for k in _mod.__dict__.keys()
-    if not k.startswith("__")
-})
+__all__ = [
+    "Exchange",
+    "FundingRate",
+    "Position",
+    "Session",
+    "SessionLocal",
+    "ThreadPoolExecutor",
+    "_SPOT_FAST_PRICE_TTL_SECS",
+    "_VOLUME_TTL_SECS",
+    "_collect_one_exchange",
+    "_fetch_one_position_price",
+    "_spot_fast_price_ts",
+    "_spot_volume_cache_ts",
+    "_volume_cache_ts",
+    "as_completed",
+    "collect_funding_rates",
+    "date",
+    "datetime",
+    "exchange_map_cache",
+    "fast_price_cache",
+    "fetch_funding_rates",
+    "fetch_spot_ticker",
+    "fetch_spot_volumes",
+    "fetch_ticker",
+    "fetch_volumes",
+    "funding_rate_cache",
+    "get_cached_exchange_map",
+    "get_spot_instance",
+    "get_spread_stats_cache",
+    "is_exchange_banned",
+    "logger",
+    "logging",
+    "spot_fast_price_cache",
+    "spot_volume_cache",
+    "spread_stats_cache",
+    "time",
+    "timedelta",
+    "timezone",
+    "utc_now",
+    "volume_cache",
+    "update_position_prices",
+    "get_latest_rates_flat",
+    "_fetch_tickers_for_exchange",
+    "_fetch_spot_tickers_for_exchange",
+    "update_fast_prices",
+]

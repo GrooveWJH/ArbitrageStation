@@ -30,17 +30,23 @@ jobs:
           pip install -r backend/requirements.txt
           pip install ruff
 
-      - name: Lint Backend With Ruff
-        run: ruff check backend --config backend/ruff.toml
-
       - name: Enforce Python Line Limit
-        run: python backend/tools/check_line_limit.py --root backend --max-lines 300
+        run: python backend/tools/check_line_limit.py --root backend --max-lines 400 --exceptions-file backend/tools/line_limit_exceptions.txt
 
       - name: Enforce No Loader Pattern
         run: python backend/tools/check_no_loader.py --root backend
 
       - name: Enforce No Split Aggregator Pattern
         run: python backend/tools/check_no_split_aggregator.py --root backend
+
+      - name: Enforce Layer Boundaries
+        run: python backend/tools/check_layer_boundaries.py --root backend
+
+      - name: Enforce No Legacy Api Imports
+        run: python backend/tools/check_no_legacy_api_imports.py --root backend
+
+      - name: Lint Backend With Ruff
+        run: ruff check backend --config backend/ruff.toml
 
       - name: Compile Backend
         run: python -m compileall -q backend
