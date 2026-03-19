@@ -12,7 +12,7 @@ import SpreadOpportunities from './pages/SpreadOpportunities';
 import SpreadArb from './pages/SpreadArb';
 import SpotBasisAuto from './pages/SpotBasisAuto';
 import SpotBasisBacktest from './pages/SpotBasisBacktest';
-import { connectWS } from './services/websocket';
+import { connectWS, disconnectWS } from './services/websocket';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -20,6 +20,9 @@ export default function App() {
 
   useEffect(() => {
     connectWS((msg) => setWsData(msg));
+    return () => {
+      disconnectWS();
+    };
   }, []);
 
   const renderPage = () => {

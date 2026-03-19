@@ -15,8 +15,8 @@ export function useSpreadOpportunitiesQuery() {
   return useQuery({
     queryKey: ["spread-monitor", "opportunities"],
     queryFn: fetchSpreadOpportunities,
-    refetchInterval: 1000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
   });
 }
 
@@ -24,7 +24,7 @@ export function useSpreadMonitorGroupsQuery() {
   return useQuery({
     queryKey: ["spread-monitor", "groups"],
     queryFn: fetchSpreadMonitorGroups,
-    refetchInterval: 1000,
-    refetchIntervalInBackground: true,
+    refetchInterval: 5000,
+    refetchIntervalInBackground: false,
   });
 }

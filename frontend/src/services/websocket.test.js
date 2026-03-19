@@ -33,6 +33,12 @@ describe("services/websocket", () => {
   let MockWebSocket;
   let logSpy;
   let errorSpy;
+  const wsEnvKeys = [
+    "REACT_APP_WS_URL",
+    "REACT_APP_WS_PATH",
+    "REACT_APP_WS_HOST",
+    "REACT_APP_WS_PORT",
+  ];
 
   beforeEach(() => {
     jest.resetModules();
@@ -43,6 +49,9 @@ describe("services/websocket", () => {
 
     MockWebSocket = createMockWebSocketClass();
     global.WebSocket = MockWebSocket;
+    wsEnvKeys.forEach((key) => {
+      delete process.env[key];
+    });
     wsService = require("./websocket");
   });
 
@@ -52,7 +61,30 @@ describe("services/websocket", () => {
     jest.useRealTimers();
     logSpy.mockRestore();
     errorSpy.mockRestore();
+    wsEnvKeys.forEach((key) => {
+      delete process.env[key];
+    });
     delete global.WebSocket;
+  });
+
+  test("resolveWsUrl should default to localhost:8000/ws in local dev", () => {
+    expect(wsService.resolveWsUrl()).toBe("ws://localhost:8000/ws");
+  });
+
+  test("resolveWsUrl should normalize REACT_APP_WS_URL from https", () => {
+    process.env.REACT_APP_WS_URL = "https://api.example.com";
+    expect(wsService.resolveWsUrl()).toBe("wss://api.example.com/ws");
+  });
+
+  test("connectWS should use configured host/port/path", () => {
+    process.env.REACT_APP_WS_HOST = "127.0.0.1";
+    process.env.REACT_APP_WS_PORT = "9000";
+    process.env.REACT_APP_WS_PATH = "/stream";
+
+    wsService.connectWS();
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+    expect(MockWebSocket.instances[0].url).toBe("ws://127.0.0.1:9000/stream");
   });
 
   test("disconnectWS should not auto-reconnect", () => {

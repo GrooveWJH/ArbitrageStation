@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Table, Tag, Tooltip, Badge, Space, Button, Row, Col, Statistic, Empty } from 'antd';
 import { ReloadOutlined, ThunderboltOutlined, RiseOutlined } from '@ant-design/icons';
 import useNowTick from '../../hooks/useNowTick';
@@ -33,11 +33,34 @@ export default function SpreadOpportunities({ wsData }) {
     dataUpdatedAt,
     refetch,
   } = useSpreadOpportunitiesQuery();
-  const opps = data?.opportunities || [];
+  const [liveOpps, setLiveOpps] = useState([]);
+  const [liveUpdatedAt, setLiveUpdatedAt] = useState(null);
+  const opps = liveOpps;
   const statsReady = isFetched;
   const isInitialLoading = isLoading && !isFetched;
   const isRefreshing = isFetching && !isInitialLoading;
-  const lastUpdated = dataUpdatedAt || null;
+  const lastUpdated = liveUpdatedAt || dataUpdatedAt || null;
+
+  useEffect(() => {
+    const nextOpps = Array.isArray(data?.opportunities) ? data.opportunities : [];
+    setLiveOpps(nextOpps);
+    if (dataUpdatedAt) {
+      setLiveUpdatedAt(dataUpdatedAt);
+    }
+  }, [data, dataUpdatedAt]);
+
+  useEffect(() => {
+    if (wsData?.type !== 'spread_opportunities') return;
+    const payload = wsData?.payload ?? wsData?.data ?? {};
+    const nextOpps = Array.isArray(payload?.opportunities) ? payload.opportunities : [];
+    setLiveOpps(nextOpps);
+
+    const rawTs = wsData?.ts;
+    const tsValue = typeof rawTs === 'number'
+      ? rawTs
+      : (rawTs ? Date.parse(String(rawTs)) : Date.now());
+    setLiveUpdatedAt(Number.isFinite(tsValue) ? tsValue : Date.now());
+  }, [wsData]);
 
   const columns = [
     {
