@@ -11,8 +11,10 @@ import {
   createRiskRule, updateRiskRule, deleteRiskRule,
   updateEmailConfig, testEmail,
   updateAppConfig,
+} from '../../services/endpoints/settingsApi';
+import {
   addExchange, updateExchange, deleteExchange,
-} from '../../services/api';
+} from '../../services/endpoints/exchangesApi';
 import {
   useAppConfigQuery,
   useEmailConfigQuery,

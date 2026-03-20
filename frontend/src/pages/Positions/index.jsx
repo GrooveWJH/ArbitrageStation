@@ -26,9 +26,11 @@ import {
 } from '@ant-design/icons';
 import {
   getPnlV2StrategyDetail,
+} from '../../services/endpoints/analyticsApi';
+import {
   openStrategy,
   closeStrategy,
-} from '../../services/api';
+} from '../../services/endpoints/tradingApi';
 import { usePositionsOverviewQuery } from '../../services/queries/positionsQueries';
 import { fmtTime } from '../../utils/time';
 import { TermLabel } from '../../components/TermHint';

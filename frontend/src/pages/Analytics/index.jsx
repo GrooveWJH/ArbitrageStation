@@ -25,7 +25,7 @@ import { Line } from '@ant-design/charts';
 import {
   getPnlV2Export,
   runPnlV2FundingIngest,
-} from '../../services/api';
+} from '../../services/endpoints/analyticsApi';
 import {
   useAnalyticsEquityCurveQuery,
   useAnalyticsPnlReconcileLatestQuery,

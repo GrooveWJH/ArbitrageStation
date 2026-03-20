@@ -21,14 +21,16 @@ import { LineChartOutlined, PlayCircleOutlined, ReloadOutlined, SearchOutlined, 
 import {
   createSpotBasisDataBacktestJob,
   createSpotBasisDataBacktestSearchJob,
-  getSpotBasisAutoConfig,
   getSpotBasisBacktestReadiness,
   getSpotBasisDataAvailableRange,
   importSpotBasisFunding,
   importSpotBasisSnapshots,
+} from '../../services/endpoints/spotBasisDataApi';
+import {
+  getSpotBasisAutoConfig,
   setSpotBasisAutoStatus,
   updateSpotBasisAutoConfig,
-} from '../../services/api';
+} from '../../services/endpoints/spotBasisApi';
 import { useSpotBasisDataJobQuery } from '../../services/queries/spotBasisBacktestQueries';
 
 const { Title, Text } = Typography;

@@ -36,7 +36,7 @@ import {
   runSpotBasisAutoCycleOnce,
   setSpotBasisAutoStatus,
   updateSpotBasisAutoConfig,
-} from '../../services/api';
+} from '../../services/endpoints/spotBasisApi';
 import {
   useSpotBasisAutoActiveExchangesQuery,
   useSpotBasisAutoDecisionPreviewQuery,
