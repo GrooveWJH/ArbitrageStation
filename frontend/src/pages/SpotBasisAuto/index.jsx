@@ -30,20 +30,20 @@ import {
 } from '@ant-design/icons';
 import {
   getExchanges,
-  getSpotBasisAutoDecisionPreview,
   getSpotBasisAutoConfig,
   getSpotBasisAutoStatus,
   getSpotBasisHistory,
-  getSpotBasisOpportunities,
   resetSpotBasisDrawdownWatermark,
   runSpotBasisAutoCycleOnce,
   setSpotBasisAutoStatus,
   updateSpotBasisAutoConfig,
 } from '../../services/api';
 import {
+  useSpotBasisAutoDecisionPreviewQuery,
   useSpotBasisAutoCycleLastQuery,
   useSpotBasisAutoCycleLogsQuery,
   useSpotBasisAutoExchangeFundsQuery,
+  useSpotBasisAutoOpportunitiesQuery,
   useSpotBasisDrawdownWatermarkQuery,
 } from '../../services/queries/spotBasisAutoQueries';
 
@@ -671,10 +671,7 @@ export default function SpotBasisAuto() {
   const [cfg, setCfg] = useState(null);
   const [saving, setSaving] = useState(false);
   const [savingStatus, setSavingStatus] = useState(false);
-  const inFlight = useRef(false);
-  const previewInFlight = useRef(false);
   const [decisionPreview, setDecisionPreview] = useState(null);
-  const [decisionLoading, setDecisionLoading] = useState(false);
   const [cycleLogs, setCycleLogs] = useState([]);
   const [cycleRunning, setCycleRunning] = useState(false);
   const [drawdownWatermarkResetting, setDrawdownWatermarkResetting] = useState(false);
@@ -710,6 +707,10 @@ export default function SpotBasisAuto() {
     action_mode: 'open',
     sort_by: 'score_strict',
   });
+  const opportunitiesQuery = useSpotBasisAutoOpportunitiesQuery(filters, expanded.length === 0);
+  const decisionPreviewQuery = useSpotBasisAutoDecisionPreviewQuery(filters);
+  const decisionLoading = decisionPreviewQuery.isPending;
+  const rowsLoading = opportunitiesQuery.isPending || loading;
 
   const loadCfg = useCallback(async () => {
     const [cfgRes, statusRes] = await Promise.allSettled([
@@ -733,64 +734,36 @@ export default function SpotBasisAuto() {
     }
   }, []);
 
-  const loadRows = useCallback(
+  const refreshRows = useCallback(
     async (silent = false) => {
-      if (inFlight.current) return;
-      inFlight.current = true;
       if (!silent) setLoading(true);
       try {
-        const { data } = await getSpotBasisOpportunities({
-          symbol: filters.symbol || '',
-          min_rate: filters.min_rate ?? 0,
-          min_perp_volume: filters.min_perp_volume ?? 0,
-          min_spot_volume: filters.min_spot_volume ?? 0,
-          min_basis_pct: filters.min_basis_pct ?? 0,
-          perp_exchange_ids: (filters.perp_exchange_ids || []).join(','),
-          spot_exchange_ids: (filters.spot_exchange_ids || []).join(','),
-          require_cross_exchange: !!filters.require_cross_exchange,
-          action_mode: filters.action_mode || 'open',
-          sort_by: filters.sort_by || 'score_strict',
-          limit: 120,
-        });
-        setRows((data?.rows || []).map(normalizeRow));
-      } catch (e) {
-        if (!silent) message.error(errText(e, '机会列表加载失败'));
+        const res = await opportunitiesQuery.refetch();
+        if (res.data) {
+          setRows(res.data.map(normalizeRow));
+        }
+        if (res.error && !silent) {
+          message.error(errText(res.error, '机会列表加载失败'));
+        }
       } finally {
-        inFlight.current = false;
         if (!silent) setLoading(false);
       }
     },
-    [filters]
+    [opportunitiesQuery]
   );
 
-  const loadDecisionPreview = useCallback(
+  const refreshDecisionPreview = useCallback(
     async (silent = false) => {
-      if (previewInFlight.current) return;
-      previewInFlight.current = true;
-      if (!silent) setDecisionLoading(true);
-      try {
-        const { data } = await getSpotBasisAutoDecisionPreview({
-          symbol: filters.symbol || '',
-          min_rate: filters.min_rate ?? 0,
-          min_perp_volume: filters.min_perp_volume ?? 0,
-          min_spot_volume: filters.min_spot_volume ?? 0,
-          min_basis_pct: filters.min_basis_pct ?? 0,
-          perp_exchange_ids: (filters.perp_exchange_ids || []).join(','),
-          spot_exchange_ids: (filters.spot_exchange_ids || []).join(','),
-          require_cross_exchange: !!filters.require_cross_exchange,
-          sort_by: filters.sort_by || 'score_strict',
-          limit: 120,
-        });
-        setDecisionPreview(data || null);
-      } catch (e) {
-        if (!silent) message.error(errText(e, '决策预览加载失败'));
-        if (!silent) setDecisionPreview(null);
-      } finally {
-        previewInFlight.current = false;
-        if (!silent) setDecisionLoading(false);
+      const res = await decisionPreviewQuery.refetch();
+      if (res.data) {
+        setDecisionPreview(res.data);
+      }
+      if (res.error && !silent) {
+        message.error(errText(res.error, '决策预览加载失败'));
+        setDecisionPreview(null);
       }
     },
-    [filters]
+    [decisionPreviewQuery]
   );
 
   useEffect(() => {
@@ -807,23 +780,16 @@ export default function SpotBasisAuto() {
   }, [cycleLogsQuery.data]);
 
   useEffect(() => {
-    loadRows(false);
-  }, [loadRows]);
+    if (opportunitiesQuery.data) {
+      setRows(opportunitiesQuery.data.map(normalizeRow));
+    }
+  }, [opportunitiesQuery.data]);
 
   useEffect(() => {
-    loadDecisionPreview(false);
-  }, [loadDecisionPreview]);
-
-  useEffect(() => {
-    if (expanded.length) return undefined;
-    const t = setInterval(() => loadRows(true), 60000);
-    return () => clearInterval(t);
-  }, [expanded.length, loadRows]);
-
-  useEffect(() => {
-    const t = setInterval(() => loadDecisionPreview(true), 60000);
-    return () => clearInterval(t);
-  }, [loadDecisionPreview]);
+    if (decisionPreviewQuery.data) {
+      setDecisionPreview(decisionPreviewQuery.data);
+    }
+  }, [decisionPreviewQuery.data]);
 
   const stats = useMemo(() => {
     if (!rows.length) return { c: 0, e: 0, s: 0 };
@@ -895,8 +861,8 @@ export default function SpotBasisAuto() {
     try {
       await runSpotBasisAutoCycleOnce();
       await Promise.all([
-        loadRows(true),
-        loadDecisionPreview(true),
+        refreshRows(true),
+        refreshDecisionPreview(true),
         cycleLastQuery.refetch(),
         cycleLogsQuery.refetch(),
         drawdownWatermarkQuery.refetch(),
@@ -1201,7 +1167,7 @@ export default function SpotBasisAuto() {
                 ]}
                 onChange={(v) => setFilters((f) => ({ ...f, sort_by: v || 'score_strict' }))}
               />
-              <Button icon={<ReloadOutlined />} type="primary" onClick={() => loadRows(false)} loading={loading}>
+              <Button icon={<ReloadOutlined />} type="primary" onClick={() => { void refreshRows(false); }} loading={rowsLoading}>
                 刷新
               </Button>
             </Space>
@@ -1229,7 +1195,7 @@ export default function SpotBasisAuto() {
             <Table
               size="small"
               rowKey={keyOf}
-              loading={loading}
+              loading={rowsLoading}
               dataSource={rows}
               columns={columns}
               pagination={{ pageSize: 20, showSizeChanger: false }}
@@ -1240,7 +1206,7 @@ export default function SpotBasisAuto() {
               }}
               scroll={{ x: 1500 }}
               locale={{
-                emptyText: loading ? <Spin /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无机会" />,
+                emptyText: rowsLoading ? <Spin /> : <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="暂无机会" />,
               }}
             />
           </Card>

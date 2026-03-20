@@ -11,6 +11,53 @@ async function fetchSpotBasisAutoCycleLast() {
   return res.data || null;
 }
 
+function buildOpportunityParams(filters) {
+  return {
+    symbol: filters?.symbol || "",
+    min_rate: filters?.min_rate ?? 0,
+    min_perp_volume: filters?.min_perp_volume ?? 0,
+    min_spot_volume: filters?.min_spot_volume ?? 0,
+    min_basis_pct: filters?.min_basis_pct ?? 0,
+    perp_exchange_ids: (filters?.perp_exchange_ids || []).join(","),
+    spot_exchange_ids: (filters?.spot_exchange_ids || []).join(","),
+    require_cross_exchange: !!filters?.require_cross_exchange,
+    action_mode: filters?.action_mode || "open",
+    sort_by: filters?.sort_by || "score_strict",
+    limit: 120,
+  };
+}
+
+function buildDecisionPreviewParams(filters) {
+  return {
+    symbol: filters?.symbol || "",
+    min_rate: filters?.min_rate ?? 0,
+    min_perp_volume: filters?.min_perp_volume ?? 0,
+    min_spot_volume: filters?.min_spot_volume ?? 0,
+    min_basis_pct: filters?.min_basis_pct ?? 0,
+    perp_exchange_ids: (filters?.perp_exchange_ids || []).join(","),
+    spot_exchange_ids: (filters?.spot_exchange_ids || []).join(","),
+    require_cross_exchange: !!filters?.require_cross_exchange,
+    sort_by: filters?.sort_by || "score_strict",
+    limit: 120,
+  };
+}
+
+async function fetchSpotBasisAutoOpportunities(filters) {
+  const res = await api.get("/spot-basis/opportunities", {
+    timeout: 30000,
+    params: buildOpportunityParams(filters),
+  });
+  return Array.isArray(res?.data?.rows) ? res.data.rows : [];
+}
+
+async function fetchSpotBasisAutoDecisionPreview(filters) {
+  const res = await api.get("/spot-basis/auto-decision-preview", {
+    timeout: 30000,
+    params: buildDecisionPreviewParams(filters),
+  });
+  return res.data || null;
+}
+
 async function fetchSpotBasisAutoCycleLogs(limit = 160) {
   const res = await api.get("/spot-basis/auto-cycle-logs", { params: { limit } });
   const items = Array.isArray(res?.data?.items) ? res.data.items : [];
@@ -73,6 +120,26 @@ export function useSpotBasisAutoCycleLastQuery() {
     queryKey: ["spot-basis-auto", "cycle-last"],
     queryFn: fetchSpotBasisAutoCycleLast,
     refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+    retry: false,
+  });
+}
+
+export function useSpotBasisAutoOpportunitiesQuery(filters, pollingEnabled = true) {
+  return useQuery({
+    queryKey: ["spot-basis-auto", "opportunities", filters],
+    queryFn: () => fetchSpotBasisAutoOpportunities(filters),
+    refetchInterval: pollingEnabled ? 60000 : false,
+    refetchIntervalInBackground: true,
+    retry: false,
+  });
+}
+
+export function useSpotBasisAutoDecisionPreviewQuery(filters) {
+  return useQuery({
+    queryKey: ["spot-basis-auto", "decision-preview", filters],
+    queryFn: () => fetchSpotBasisAutoDecisionPreview(filters),
+    refetchInterval: 60000,
     refetchIntervalInBackground: true,
     retry: false,
   });
