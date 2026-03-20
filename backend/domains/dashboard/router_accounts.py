@@ -1,6 +1,8 @@
 """Account and trade-log routes for dashboard domain."""
 
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
+from time import monotonic
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
@@ -18,6 +20,9 @@ from domains.dashboard.service import (
 )
 
 router = APIRouter()
+_ACCOUNT_OVERVIEW_CACHE_TTL_SECS = 3.0
+_account_overview_lock = Lock()
+_account_overview_cache: dict[str, object] = {"ts": 0.0, "payload": None}
 
 
 def _parse_assets_from_ccxt_balance(balance: dict) -> list[dict]:
@@ -211,6 +216,13 @@ def _fetch_exchange_overview(ex: Exchange) -> dict:
 
 @router.get("/account-overview")
 def get_account_overview(db: Session = Depends(get_db)):
+    now = monotonic()
+    with _account_overview_lock:
+        cached_ts = float(_account_overview_cache.get("ts") or 0.0)
+        cached_payload = _account_overview_cache.get("payload")
+        if cached_payload is not None and (now - cached_ts) < _ACCOUNT_OVERVIEW_CACHE_TTL_SECS:
+            return cached_payload
+
     exchanges = db.query(Exchange).filter(Exchange.is_active == True).all()
     if not exchanges:
         return []
@@ -234,7 +246,11 @@ def get_account_overview(db: Session = Depends(get_db)):
                     "spot_usdt": 0.0,
                     "futures_usdt": 0.0,
                 }
-    return [r for r in results if r is not None]
+    payload = [r for r in results if r is not None]
+    with _account_overview_lock:
+        _account_overview_cache["ts"] = monotonic()
+        _account_overview_cache["payload"] = payload
+    return payload
 
 
 @router.get("/trade-logs")

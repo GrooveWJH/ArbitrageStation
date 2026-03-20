@@ -7,9 +7,12 @@ from datetime import timedelta, timezone
 # Ensure backend directory is importable
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy import text
 
 from db import SessionLocal, init_db
 from db.models import AppConfig
@@ -23,7 +26,6 @@ from domains.spread_arb.router import router as spread_arb_router
 from domains.spot_basis.router import router as spot_basis_router
 from domains.spot_basis_data.router import router as spot_basis_data_router
 from domains.pnl_v2.router import router as pnl_v2_router
-from domains.ai_analyst.router import router as ai_analyst_router
 from domains.websocket.router import (
     router as ws_router,
     start_broadcast_loop,
@@ -83,8 +85,70 @@ app.include_router(spread_arb_router)
 app.include_router(spot_basis_router)
 app.include_router(spot_basis_data_router)
 app.include_router(pnl_v2_router)
-app.include_router(ai_analyst_router)
 app.include_router(ws_router)
+
+
+def _error_message_from_detail(detail, fallback: str) -> str:
+    if isinstance(detail, str) and detail.strip():
+        return detail
+    if isinstance(detail, dict):
+        msg = detail.get("message")
+        if isinstance(msg, str) and msg.strip():
+            return msg
+    return fallback
+
+
+def _error_payload(*, request: Request, status_code: int, detail, fallback_message: str) -> dict:
+    request_id = request.headers.get("X-Request-Id") or request.headers.get("Idempotency-Key")
+    return {
+        "detail": detail,
+        "error": {
+            "code": f"HTTP_{status_code}",
+            "message": _error_message_from_detail(detail, fallback_message),
+            "quality_reason": None,
+            "request_id": request_id,
+        },
+    }
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=_error_payload(
+            request=request,
+            status_code=exc.status_code,
+            detail=exc.detail,
+            fallback_message="Request failed",
+        ),
+    )
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    return JSONResponse(
+        status_code=422,
+        content=_error_payload(
+            request=request,
+            status_code=422,
+            detail=exc.errors(),
+            fallback_message="Validation error",
+        ),
+    )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content=_error_payload(
+            request=request,
+            status_code=500,
+            detail="Internal server error",
+            fallback_message="Internal server error",
+        ),
+    )
 
 # Freeze scheduler timezone to UTC+8 so cron jobs are deterministic across hosts.
 UTC8 = timezone(timedelta(hours=8))
@@ -214,3 +278,50 @@ async def shutdown():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+def _readiness_snapshot() -> tuple[dict, int]:
+    db_ok = False
+    db_error = ""
+    db = SessionLocal()
+    try:
+        db.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception as exc:
+        db_error = str(exc)[:200]
+    finally:
+        db.close()
+
+    scheduler_running = False
+    scheduler_error = ""
+    job_ids: list[str] = []
+    try:
+        scheduler_running = bool(scheduler.running)
+        job_ids = sorted(job.id for job in scheduler.get_jobs())
+    except Exception as exc:
+        scheduler_error = str(exc)[:200]
+
+    ready = db_ok and scheduler_running
+    payload = {
+        "status": "ok" if ready else "degraded",
+        "checks": {
+            "database": {
+                "ok": db_ok,
+                "error": db_error or None,
+            },
+            "scheduler": {
+                "ok": scheduler_running,
+                "running": scheduler_running,
+                "job_count": len(job_ids),
+                "job_ids": job_ids,
+                "error": scheduler_error or None,
+            },
+        },
+    }
+    return payload, (200 if ready else 503)
+
+
+@app.get("/api/ready")
+def ready():
+    payload, code = _readiness_snapshot()
+    return JSONResponse(status_code=code, content=payload)

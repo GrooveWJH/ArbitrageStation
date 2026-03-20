@@ -3,7 +3,7 @@
 import asyncio
 import json
 import logging
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
@@ -28,6 +28,7 @@ class _DatetimeEncoder(json.JSONEncoder):
 router = APIRouter()
 logger = logging.getLogger(__name__)
 connected_clients: list[WebSocket] = []
+WS_EVENT_VERSION = 1
 
 
 @router.websocket("/ws")
@@ -47,7 +48,17 @@ async def websocket_endpoint(websocket: WebSocket):
 async def broadcast(event_type: str, data: dict):
     if not connected_clients:
         return
-    message = json.dumps({"type": event_type, "data": data}, cls=_DatetimeEncoder)
+    message = json.dumps(
+        {
+            "type": event_type,
+            "version": WS_EVENT_VERSION,
+            "ts": datetime.now(timezone.utc),
+            "payload": data,
+            # Keep legacy data field for backward compatibility.
+            "data": data,
+        },
+        cls=_DatetimeEncoder,
+    )
     dead = []
     for ws in connected_clients:
         try:

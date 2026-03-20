@@ -2,7 +2,7 @@
 
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -93,14 +93,29 @@ def get_stats(db: Session = Depends(get_db)):
 
 
 @router.post("/close/{position_id}")
-def manual_close(position_id: int, db: Session = Depends(get_db)):
+def manual_close(
+    position_id: int,
+    db: Session = Depends(get_db),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+):
     pos = db.query(SpreadPosition).filter(SpreadPosition.id == position_id).first()
     if not pos:
         raise HTTPException(404, "Position not found")
     if pos.status != "open":
-        raise HTTPException(400, f"Position status is '{pos.status}', not open")
+        return {
+            "ok": True,
+            "id": position_id,
+            "status": "already_closed",
+            "current_status": pos.status,
+            "request_id": idempotency_key,
+        }
     close_spread_position(db, pos, "手动平仓")
-    return {"ok": True, "id": position_id}
+    return {
+        "ok": True,
+        "id": position_id,
+        "status": "closed",
+        "request_id": idempotency_key,
+    }
 
 
 class SpreadArbConfig(BaseModel):

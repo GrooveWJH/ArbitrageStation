@@ -1,5 +1,8 @@
 """Spread monitor domain routes."""
 
+from threading import Lock
+from time import monotonic
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -14,23 +17,55 @@ from domains.spread_monitor.service import (
 )
 
 router = APIRouter(prefix="/api/spread-monitor", tags=["spread-monitor"])
+_SPREAD_MONITOR_CACHE_TTL_SECS = 1.0
+_cache_lock = Lock()
+_groups_cache: dict[str, object] = {"ts": 0.0, "payload": None}
+_opportunities_cache: dict[str, object] = {"ts": 0.0, "payload": None}
 
 
-@router.get("/groups")
-def get_spread_groups(db: Session = Depends(get_db)):
+def _compute_groups_payload(db: Session) -> dict:
     exchanges = db.query(Exchange).filter(Exchange.is_active == True).all()
     ex_map = {ex.id: {"id": ex.id, "name": ex.name, "display_name": ex.display_name} for ex in exchanges}
     groups = compute_spread_groups(ex_map)
     return {"groups": groups, "total": len(groups)}
 
 
+def _get_groups_payload(db: Session) -> dict:
+    now = monotonic()
+    with _cache_lock:
+        cached_ts = float(_groups_cache.get("ts") or 0.0)
+        cached_payload = _groups_cache.get("payload")
+        if cached_payload is not None and (now - cached_ts) < _SPREAD_MONITOR_CACHE_TTL_SECS:
+            return cached_payload
+
+    payload = _compute_groups_payload(db)
+    with _cache_lock:
+        _groups_cache["ts"] = monotonic()
+        _groups_cache["payload"] = payload
+    return payload
+
+
+@router.get("/groups")
+def get_spread_groups(db: Session = Depends(get_db)):
+    return _get_groups_payload(db)
+
+
 @router.get("/opportunities")
 def get_opportunities(db: Session = Depends(get_db)):
-    exchanges = db.query(Exchange).filter(Exchange.is_active == True).all()
-    ex_map = {ex.id: {"id": ex.id, "name": ex.name, "display_name": ex.display_name} for ex in exchanges}
-    groups = compute_spread_groups(ex_map)
-    opportunities = compute_opportunities(groups)
-    return {"opportunities": opportunities, "total": len(opportunities)}
+    now = monotonic()
+    with _cache_lock:
+        cached_ts = float(_opportunities_cache.get("ts") or 0.0)
+        cached_payload = _opportunities_cache.get("payload")
+        if cached_payload is not None and (now - cached_ts) < _SPREAD_MONITOR_CACHE_TTL_SECS:
+            return cached_payload
+
+    groups_payload = _get_groups_payload(db)
+    opportunities = compute_opportunities(groups_payload["groups"])
+    payload = {"opportunities": opportunities, "total": len(opportunities)}
+    with _cache_lock:
+        _opportunities_cache["ts"] = monotonic()
+        _opportunities_cache["payload"] = payload
+    return payload
 
 
 @router.get("/kline")
