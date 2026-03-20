@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Row,
   Col,
@@ -24,12 +24,12 @@ import {
 } from '@ant-design/icons';
 import { Line } from '@ant-design/charts';
 import {
-  getPnlV2Summary,
-  getOpportunities,
-  getSpotOpportunities,
-  getTradeLogs,
-  getAccountOverview,
-} from '../../services/api';
+  useDashboardAccountOverviewQuery,
+  useDashboardOpportunitiesQuery,
+  useDashboardPnlSummaryQuery,
+  useDashboardSpotOpportunitiesQuery,
+  useDashboardTradeLogsQuery,
+} from '../../services/queries/dashboardQueries';
 import { fmtTime } from '../../utils/time';
 import { TermLabel } from '../../components/TermHint';
 
@@ -156,15 +156,24 @@ function PriceDiffCell({ record }) {
 }
 
 export default function Dashboard({ wsData }) {
-  const [pnlSummary, setPnlSummary] = useState({});
   const [opportunities, setOpportunities] = useState([]);
-  const [spotOpportunities, setSpotOpportunities] = useState([]);
-  const [logs, setLogs] = useState([]);
   const [minVolume, setMinVolume] = useState(() => Number(localStorage.getItem('dashboard_min_volume') || 0));
   const [minSpotVolume, setMinSpotVolume] = useState(() => Number(localStorage.getItem('dashboard_min_spot_volume') || 0));
-  const [accountData, setAccountData] = useState([]);
   const [accountTrend, setAccountTrend] = useState([]);
-  const [accountLoading, setAccountLoading] = useState(false);
+  const [accountRefreshLoading, setAccountRefreshLoading] = useState(false);
+
+  const pnlSummaryQuery = useDashboardPnlSummaryQuery();
+  const opportunitiesQuery = useDashboardOpportunitiesQuery(minVolume);
+  const spotOpportunitiesQuery = useDashboardSpotOpportunitiesQuery(minVolume, minSpotVolume);
+  const tradeLogsQuery = useDashboardTradeLogsQuery(20);
+  const accountOverviewQuery = useDashboardAccountOverviewQuery();
+
+  const pnlSummary = pnlSummaryQuery.data || {};
+  const baseOpportunities = opportunitiesQuery.data || [];
+  const spotOpportunities = spotOpportunitiesQuery.data || [];
+  const logs = tradeLogsQuery.data || [];
+  const accountData = accountOverviewQuery.data || [];
+  const accountLoading = (!accountOverviewQuery.isFetched && accountOverviewQuery.isLoading) || accountRefreshLoading;
 
   const handleMinVolumeChange = (v) => {
     const val = v || 0;
@@ -178,27 +187,23 @@ export default function Dashboard({ wsData }) {
     localStorage.setItem('dashboard_min_spot_volume', val);
   };
 
-  const fetchAll = async () => {
+  const handleRefreshAccount = useCallback(async () => {
+    setAccountRefreshLoading(true);
     try {
-      const [p, o, so, l] = await Promise.all([
-        getPnlV2Summary(0),
-        getOpportunities({ min_diff: 0.01, min_volume: minVolume }),
-        getSpotOpportunities({ min_rate: 0.01, min_volume: minVolume, min_spot_volume: minSpotVolume }),
-        getTradeLogs({ limit: 20 }),
-      ]);
-      setPnlSummary(p.data || {});
-      setOpportunities(o.data);
-      setSpotOpportunities(so.data);
-      setLogs(l.data);
-    } catch (e) {
-      console.error(e);
+      await accountOverviewQuery.refetch();
+    } finally {
+      setAccountRefreshLoading(false);
     }
-  };
+  }, [accountOverviewQuery]);
 
-  const consumeAccountOverview = (rows) => {
-    const normalized = Array.isArray(rows) ? rows : [];
-    setAccountData(normalized);
+  useEffect(() => {
+    setOpportunities(Array.isArray(baseOpportunities) ? baseOpportunities : []);
+  }, [baseOpportunities]);
 
+  useEffect(() => {
+    if (!accountOverviewQuery.dataUpdatedAt) return;
+
+    const normalized = Array.isArray(accountData) ? accountData : [];
     const totalUsdt = normalized.reduce((sum, ex) => sum + calcExchangeTotalUsdt(ex), 0);
     const totalUnrealized = normalized.reduce(
       (sum, ex) => sum + (Array.isArray(ex.positions) ? ex.positions.reduce((s, p) => s + toNumber(p.unrealized_pnl), 0) : 0),
@@ -221,44 +226,7 @@ export default function Dashboard({ wsData }) {
       const next = [...prev, point];
       return next.slice(-180);
     });
-  };
-
-  const fetchAccount = async ({ silent = false } = {}) => {
-    if (!silent) setAccountLoading(true);
-    try {
-      const res = await getAccountOverview();
-      consumeAccountOverview(res.data || []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      if (!silent) setAccountLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAll();
-  }, [minVolume, minSpotVolume]);
-
-  useEffect(() => {
-    fetchAccount();
-  }, []);
-
-  useEffect(() => {
-    const t1 = setInterval(() => {
-      Promise.all([getPnlV2Summary(0)])
-        .then(([p]) => {
-          setPnlSummary(p.data || {});
-        })
-        .catch(() => {});
-    }, 3000);
-    const t2 = setInterval(() => {
-      fetchAccount({ silent: true });
-    }, 5000);
-    return () => {
-      clearInterval(t1);
-      clearInterval(t2);
-    };
-  }, []);
+  }, [accountOverviewQuery.dataUpdatedAt, accountData]);
 
   useEffect(() => {
     if (wsData?.type === 'price_diffs') _updatePriceStore(wsData.data);
@@ -600,7 +568,7 @@ export default function Dashboard({ wsData }) {
         title={<Space><WalletOutlined style={{ color: '#1677ff' }} /><span>账户资金 (实时)</span></Space>}
         style={{ marginBottom: 24 }}
         extra={
-          <Button icon={<ReloadOutlined />} size="small" loading={accountLoading} onClick={fetchAccount}>
+          <Button icon={<ReloadOutlined />} size="small" loading={accountLoading} onClick={() => { void handleRefreshAccount(); }}>
             刷新
           </Button>
         }

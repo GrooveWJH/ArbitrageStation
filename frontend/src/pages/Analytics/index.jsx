@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Card,
@@ -23,13 +23,15 @@ import {
 } from '@ant-design/icons';
 import { Line } from '@ant-design/charts';
 import {
-  getEquityCurve,
   getPnlV2Export,
-  getPnlV2ReconcileLatest,
-  getPnlV2Strategies,
-  getPnlV2Summary,
   runPnlV2FundingIngest,
 } from '../../services/api';
+import {
+  useAnalyticsEquityCurveQuery,
+  useAnalyticsPnlReconcileLatestQuery,
+  useAnalyticsPnlStrategiesQuery,
+  useAnalyticsPnlSummaryQuery,
+} from '../../services/queries/analyticsQueries';
 import { fmtTime } from '../../utils/time';
 import { TermLabel } from '../../components/TermHint';
 
@@ -69,23 +71,9 @@ function StatusTag({ value }) {
 }
 
 function EquityCurve({ days }) {
-  const [eq, setEq] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const { data: eq, isLoading, isFetching, isFetched, refetch } = useAnalyticsEquityCurveQuery(days);
+  const isInitialLoading = isLoading && !isFetched;
   const [view, setView] = useState('equity');
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await getEquityCurve(days);
-      setEq(res.data);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, [days]);
 
   const chartData = useMemo(() => {
     if (!eq?.points?.length) return [];
@@ -127,11 +115,11 @@ function EquityCurve({ days }) {
               { label: 'Profit', value: 'profit' },
             ]}
           />
-          <Button size="small" icon={<ReloadOutlined />} onClick={load} loading={loading} />
+          <Button size="small" icon={<ReloadOutlined />} onClick={() => { void refetch(); }} loading={isFetching && !isInitialLoading} />
         </Space>
       }
     >
-      {!loading && (!eq?.points || eq.points.length === 0) ? (
+      {!isInitialLoading && (!eq?.points || eq.points.length === 0) ? (
         <Empty description="No equity snapshots yet" />
       ) : (
         <div style={{ height: 260 }}>
@@ -145,55 +133,48 @@ function EquityCurve({ days }) {
 export default function Analytics() {
   const [days, setDays] = useState(30);
   const [scope, setScope] = useState('active');
-  const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [summary, setSummary] = useState(null);
-  const [rows, setRows] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
-  const [totalCount, setTotalCount] = useState(0);
-  const [dailyReconcile, setDailyReconcile] = useState(null);
   const statusFilter = scope === 'all' ? undefined : scope;
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [s, r, rec] = await Promise.all([
-        getPnlV2Summary({ days, status: statusFilter }),
-        getPnlV2Strategies({ days, status: statusFilter, page, page_size: pageSize }),
-        getPnlV2ReconcileLatest(1),
-      ]);
-      setSummary(s.data || {});
-      setRows((r.data && r.data.rows) || []);
-      setTotalCount(Number(r?.data?.total_count || 0));
-      const recRows = (rec.data && rec.data.rows) || [];
-      setDailyReconcile(recRows.length > 0 ? recRows[0] : null);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const summaryQuery = useAnalyticsPnlSummaryQuery({ days, status: statusFilter });
+  const strategiesQuery = useAnalyticsPnlStrategiesQuery({ days, status: statusFilter, page, page_size: pageSize });
+  const reconcileQuery = useAnalyticsPnlReconcileLatestQuery(1);
 
-  useEffect(() => {
-    load();
-  }, [days, scope, page, pageSize]);
+  const summary = summaryQuery.data || {};
+  const rows = (strategiesQuery.data && strategiesQuery.data.rows) || [];
+  const totalCount = Number((strategiesQuery.data && strategiesQuery.data.total_count) || 0);
+  const recRows = (reconcileQuery.data && reconcileQuery.data.rows) || [];
+  const dailyReconcile = recRows.length > 0 ? recRows[0] : null;
+  const loading = [summaryQuery, strategiesQuery, reconcileQuery].some((q) => q.isLoading && !q.isFetched);
+  const refreshing = [summaryQuery, strategiesQuery, reconcileQuery].some((q) => q.isFetching);
+
+  const refreshAnalytics = useCallback(async () => {
+    await Promise.all([
+      summaryQuery.refetch(),
+      strategiesQuery.refetch(),
+      reconcileQuery.refetch(),
+    ]);
+  }, [summaryQuery, strategiesQuery, reconcileQuery]);
 
   useEffect(() => {
     setPage(1);
   }, [days, scope]);
 
-  const onSyncFunding = async () => {
+  const onSyncFunding = useCallback(async () => {
     setSyncing(true);
     try {
       const res = await runPnlV2FundingIngest({ lookback_hours: 72 });
       const cnt = (res.data && res.data.count) || 0;
       message.success(`funding ingest done (${cnt} exchanges)`);
-      await load();
+      await refreshAnalytics();
     } catch (e) {
       message.error(`ingest failed: ${e?.response?.data?.detail || e.message}`);
     } finally {
       setSyncing(false);
     }
-  };
+  }, [refreshAnalytics]);
 
   const expected = Number(summary?.funding_expected_event_count || 0);
   const captured = Number(summary?.funding_captured_event_count || 0);
@@ -349,7 +330,7 @@ export default function Analytics() {
                 { label: 'All', value: 0 },
               ]}
             />
-            <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>Refresh</Button>
+            <Button icon={<ReloadOutlined />} onClick={() => { void refreshAnalytics(); }} loading={refreshing}>Refresh</Button>
             <Button icon={<SyncOutlined />} onClick={onSyncFunding} loading={syncing}>Sync Funding</Button>
             <Button icon={<DownloadOutlined />} onClick={onExportCsv}>Export CSV</Button>
           </Space>
