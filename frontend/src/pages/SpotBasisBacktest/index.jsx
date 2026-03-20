@@ -24,12 +24,12 @@ import {
   getSpotBasisAutoConfig,
   getSpotBasisBacktestReadiness,
   getSpotBasisDataAvailableRange,
-  getSpotBasisDataJob,
   importSpotBasisFunding,
   importSpotBasisSnapshots,
   setSpotBasisAutoStatus,
   updateSpotBasisAutoConfig,
 } from '../../services/api';
+import { useSpotBasisDataJobQuery } from '../../services/queries/spotBasisBacktestQueries';
 
 const { Title, Text } = Typography;
 
@@ -281,8 +281,6 @@ export default function SpotBasisBacktest() {
   const [fundingImportPath, setFundingImportPath] = useState('');
   const [availableRangeLoading, setAvailableRangeLoading] = useState(false);
   const [availableRange, setAvailableRange] = useState(null);
-  const pollRef = useRef(null);
-  const importPollRef = useRef(null);
 
   const [searchParams, setSearchParams] = useState(defaultSearchParams);
   const [searchJobId, setSearchJobId] = useState(null);
@@ -295,7 +293,6 @@ export default function SpotBasisBacktest() {
   const [autoDiffStartAfterApply, setAutoDiffStartAfterApply] = useState(false);
   const [autoDiffCurrentCfg, setAutoDiffCurrentCfg] = useState(null);
   const [autoDiffPatch, setAutoDiffPatch] = useState(null);
-  const searchPollRef = useRef(null);
 
   const result = useMemo(() => job?.result || {}, [job]);
   const summary = result?.summary || {};
@@ -323,89 +320,34 @@ export default function SpotBasisBacktest() {
     });
   }, [autoDiffCurrentCfg, autoDiffPatch]);
 
-  const stopPolling = () => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  };
-
-  const stopImportPolling = () => {
-    if (importPollRef.current) {
-      clearInterval(importPollRef.current);
-      importPollRef.current = null;
-    }
-  };
-
-  const stopSearchPolling = () => {
-    if (searchPollRef.current) {
-      clearInterval(searchPollRef.current);
-      searchPollRef.current = null;
-    }
-  };
-
-  const loadJob = async (id, silent = false) => {
-    if (!id) return;
-    try {
-      const { data } = await getSpotBasisDataJob(id);
-      const next = data?.job || null;
-      setJob(next);
-      const s = String(next?.status || '').toLowerCase();
-      if (s === 'succeeded' || s === 'failed') {
-        stopPolling();
-      }
-    } catch (e) {
-      if (!silent) {
-        message.error(e?.response?.data?.detail || e?.message || '读取任务失败');
-      }
-      stopPolling();
-    }
-  };
-
-  const loadImportJob = async (id, silent = false) => {
-    if (!id) return;
-    try {
-      const { data } = await getSpotBasisDataJob(id);
-      const next = data?.job || null;
-      setImportJob(next);
-      const s = String(next?.status || '').toLowerCase();
-      if (s === 'succeeded' || s === 'failed') {
-        stopImportPolling();
-        checkReadiness(true);
-      }
-    } catch (e) {
-      if (!silent) {
-        message.error(e?.response?.data?.detail || e?.message || '读取导入任务失败');
-      }
-      stopImportPolling();
-    }
-  };
-
-  const loadSearchJob = async (id, silent = false) => {
-    if (!id) return;
-    try {
-      const { data } = await getSpotBasisDataJob(id);
-      const next = data?.job || null;
-      setSearchJob(next);
-      const s = String(next?.status || '').toLowerCase();
-      if (s === 'succeeded' || s === 'failed') {
-        stopSearchPolling();
-      }
-    } catch (e) {
-      if (!silent) {
-        message.error(e?.response?.data?.detail || e?.message || '读取搜索任务失败');
-      }
-      stopSearchPolling();
-    }
-  };
+  const backtestJobQuery = useSpotBasisDataJobQuery(jobId, Boolean(jobId));
+  const importJobQuery = useSpotBasisDataJobQuery(importJobId, Boolean(importJobId));
+  const searchJobQuery = useSpotBasisDataJobQuery(searchJobId, Boolean(searchJobId));
 
   useEffect(() => {
-    return () => {
-      stopPolling();
-      stopImportPolling();
-      stopSearchPolling();
-    };
-  }, []);
+    if (backtestJobQuery.data) {
+      setJob(backtestJobQuery.data);
+    }
+  }, [backtestJobQuery.data]);
+
+  useEffect(() => {
+    if (importJobQuery.data) {
+      setImportJob(importJobQuery.data);
+    }
+  }, [importJobQuery.data]);
+
+  useEffect(() => {
+    if (searchJobQuery.data) {
+      setSearchJob(searchJobQuery.data);
+    }
+  }, [searchJobQuery.data]);
+
+  useEffect(() => {
+    const status = String(importJob?.status || '').toLowerCase();
+    if ((status === 'succeeded' || status === 'failed') && importJob?.id && importJob.id === importJobId) {
+      void checkReadiness(true);
+    }
+  }, [importJob?.status, importJob?.id, importJobId]);
 
   const buildReadinessParams = () => ({
     start_date: params.start_date || undefined,
@@ -453,8 +395,6 @@ export default function SpotBasisBacktest() {
       setImportJobId(j.id);
       setImportJob(j);
       message.success(`${isFunding ? 'Funding历史' : '快照'}导入任务已启动 #${j.id}`);
-      stopImportPolling();
-      importPollRef.current = setInterval(() => loadImportJob(j.id, true), 2000);
     } catch (e) {
       message.error(e?.response?.data?.detail || e?.message || `启动${isFunding ? 'Funding历史' : '快照'}导入失败`);
     } finally {
@@ -506,8 +446,6 @@ export default function SpotBasisBacktest() {
       setJobId(j.id);
       setJob(j);
       message.success(`回测任务已启动 #${j.id}`);
-      stopPolling();
-      pollRef.current = setInterval(() => loadJob(j.id, true), 2000);
     } catch (e) {
       message.error(e?.response?.data?.detail || e?.message || '启动回测失败');
     } finally {
@@ -560,12 +498,26 @@ export default function SpotBasisBacktest() {
       setSearchJobId(j.id);
       setSearchJob(j);
       message.success(`参数搜索任务已启动 #${j.id}`);
-      stopSearchPolling();
-      searchPollRef.current = setInterval(() => loadSearchJob(j.id, true), 2000);
     } catch (e) {
       message.error(e?.response?.data?.detail || e?.message || '启动参数搜索失败');
     } finally {
       setSearchLoading(false);
+    }
+  };
+
+  const refreshBacktestJob = async () => {
+    if (!jobId) return;
+    const res = await backtestJobQuery.refetch();
+    if (res.error) {
+      message.error(res.error?.response?.data?.detail || res.error?.message || '读取任务失败');
+    }
+  };
+
+  const refreshSearchJob = async () => {
+    if (!searchJobId) return;
+    const res = await searchJobQuery.refetch();
+    if (res.error) {
+      message.error(res.error?.response?.data?.detail || res.error?.message || '读取搜索任务失败');
     }
   };
 
@@ -811,7 +763,7 @@ export default function SpotBasisBacktest() {
             <Button
               icon={<ReloadOutlined />}
               disabled={!jobId}
-              onClick={() => loadJob(jobId)}
+              onClick={() => { void refreshBacktestJob(); }}
             >
               刷新任务
             </Button>
@@ -1019,7 +971,7 @@ export default function SpotBasisBacktest() {
             <Title level={5} style={{ margin: 0 }}>Walk-forward 参数搜索</Title>
           </Space>
           <Space>
-            <Button icon={<ReloadOutlined />} disabled={!searchJobId} onClick={() => loadSearchJob(searchJobId)}>
+            <Button icon={<ReloadOutlined />} disabled={!searchJobId} onClick={() => { void refreshSearchJob(); }}>
               刷新搜索
             </Button>
             <Button type="primary" loading={searchLoading} icon={<PlayCircleOutlined />} onClick={startSearch}>
