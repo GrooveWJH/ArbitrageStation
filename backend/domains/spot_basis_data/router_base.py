@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from db import get_db
 from db.models import PairUniverseDaily
-from infra.spot_basis_data.gateway import (
+from domains.spot_basis_data.service import (
     _job_to_dict,
     create_job,
     ensure_import_dir,

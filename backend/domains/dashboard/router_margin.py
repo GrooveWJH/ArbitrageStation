@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from db import SessionLocal, get_db
 from db.models import AutoTradeConfig, Exchange, Position, Strategy
-from infra.exchange.gateway import extract_usdt_balance, get_instance
+from domains.dashboard.service import extract_usdt_balance, get_instance
 
 router = APIRouter()
 

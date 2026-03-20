@@ -41,6 +41,21 @@ class DomainRouterServiceBoundaryTests(unittest.TestCase):
     def test_spread_arb_router_uses_domain_service_only(self):
         self._assert_domain_service_router("domains/spread_arb/router.py", "domains.spread_arb.service")
 
+    def test_dashboard_accounts_router_uses_domain_service_only(self):
+        self._assert_domain_service_router("domains/dashboard/router_accounts.py", "domains.dashboard.service")
+
+    def test_dashboard_margin_router_uses_domain_service_only(self):
+        self._assert_domain_service_router("domains/dashboard/router_margin.py", "domains.dashboard.service")
+
+    def test_dashboard_overview_router_uses_domain_service_only(self):
+        self._assert_domain_service_router("domains/dashboard/router_overview.py", "domains.dashboard.service")
+
+    def test_spot_basis_data_base_router_uses_domain_service_only(self):
+        self._assert_domain_service_router("domains/spot_basis_data/router_base.py", "domains.spot_basis_data.service")
+
+    def test_spot_basis_data_jobs_router_uses_domain_service_only(self):
+        self._assert_domain_service_router("domains/spot_basis_data/router_jobs.py", "domains.spot_basis_data.service")
+
 
 if __name__ == "__main__":
     unittest.main()

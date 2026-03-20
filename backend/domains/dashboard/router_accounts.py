@@ -8,14 +8,14 @@ from sqlalchemy.orm import Session
 
 from db import SessionLocal, get_db
 from db.models import Exchange, Position, TradeLog
-from infra.exchange.gateway import (
+from domains.dashboard.service import (
     balance_to_usdt_value,
     extract_usdt_balance,
     fetch_spot_balance_safe,
     get_instance,
     get_spot_instance,
+    resolve_is_unified_account,
 )
-from infra.exchange.profile_gateway import resolve_is_unified_account
 
 router = APIRouter()
 

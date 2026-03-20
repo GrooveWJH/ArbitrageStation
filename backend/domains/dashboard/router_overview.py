@@ -9,10 +9,15 @@ from sqlalchemy.orm import Session
 
 from db import get_db
 from db.models import Exchange, Position, Strategy, TradeLog
+from domains.dashboard.service import (
+    _funding_periods_per_day,
+    find_opportunities,
+    find_spot_hedge_opportunities,
+    funding_rate_cache,
+    get_latest_rates_flat,
+    get_spot_instance,
+)
 from domains.pnl_v2.service_common import serialize_strategy_row as serialize_pnl_strategy_row
-from infra.arbitrage.gateway import _funding_periods_per_day, find_opportunities, find_spot_hedge_opportunities
-from infra.exchange.gateway import get_spot_instance
-from infra.market.gateway import funding_rate_cache, get_latest_rates_flat
 from shared.time import utc_now
 
 router = APIRouter()

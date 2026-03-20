@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from starlette.responses import FileResponse
 
 from db import get_db
-from infra.spot_basis_data.gateway import (
+from domains.spot_basis_data.service import (
     _job_to_dict,
     build_backtest_available_range_report,
     build_backtest_readiness_report,
