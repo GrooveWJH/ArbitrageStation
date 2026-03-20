@@ -39,6 +39,9 @@ jobs:
       - name: Enforce No Split Aggregator Pattern
         run: python backend/tools/check_no_split_aggregator.py --root backend
 
+      - name: Enforce No Chain Import Pattern
+        run: python backend/tools/check_no_chain_imports.py --root backend --exceptions-file backend/tools/chain_import_exceptions.txt
+
       - name: Enforce Layer Boundaries
         run: python backend/tools/check_layer_boundaries.py --root backend
 
