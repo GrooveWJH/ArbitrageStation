@@ -29,7 +29,7 @@ from domains.websocket.router import (
     start_broadcast_loop,
     start_price_broadcast_loop,
 )
-from infra.tasks.gateway import (
+from domains.runtime.service import (
     collect_equity_snapshot,
     collect_funding_rates,
     refresh_spread_stats,
