@@ -35,5 +35,5 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint Frontend With Biome
-        run: pnpm lint
+      - name: Run Frontend Quality Gate
+        run: bash ../scripts/quality-gate-frontend.sh
