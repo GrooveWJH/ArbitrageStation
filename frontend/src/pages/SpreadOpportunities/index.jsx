@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Table, Tag, Tooltip, Badge, Space, Button, Row, Col, Statistic, Empty } from 'antd';
 import { ReloadOutlined, ThunderboltOutlined, RiseOutlined } from '@ant-design/icons';
-import api from '../../services/httpClient';
+import { useSpreadOpportunitiesQuery } from '../../services/queries/spreadMonitorQueries';
 
 function fmtCountdown(secs) {
   if (secs == null) return '—';
@@ -23,39 +23,25 @@ function fmtVol(v) {
 }
 
 export default function SpreadOpportunities({ wsData }) {
-  const [opps, setOpps] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null);
-  const [statsReady, setStatsReady] = useState(false);
-  const fetchedAt = useRef(null);
   const [nowTick, setNowTick] = useState(Date.now());
+  const {
+    data,
+    isLoading,
+    isFetching,
+    isFetched,
+    dataUpdatedAt,
+    refetch,
+  } = useSpreadOpportunitiesQuery();
+  const opps = data?.opportunities || [];
+  const statsReady = isFetched;
+  const isInitialLoading = isLoading && !isFetched;
+  const isRefreshing = isFetching && !isInitialLoading;
+  const lastUpdated = dataUpdatedAt || null;
 
   useEffect(() => {
     const t = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await api.get('/spread-monitor/opportunities');
-      setOpps(res.data.opportunities || []);
-      fetchedAt.current = Date.now();
-      setLastUpdated(Date.now());
-      setStatsReady(true);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Initial load + 1s polling
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => {
-    const t = setInterval(load, 1000);
-    return () => clearInterval(t);
-  }, [load]);
 
   const columns = [
     {
@@ -252,7 +238,7 @@ export default function SpreadOpportunities({ wsData }) {
                   </span>
                 } />
               )}
-              <Button icon={<ReloadOutlined />} size="small" onClick={load} loading={loading}>
+              <Button icon={<ReloadOutlined />} size="small" onClick={() => { void refetch(); }} loading={isRefreshing}>
                 刷新
               </Button>
             </Space>
@@ -260,7 +246,7 @@ export default function SpreadOpportunities({ wsData }) {
         </Row>
       </Card>
 
-      {!loading && opps.length === 0 && (
+      {!isInitialLoading && opps.length === 0 && (
         <Card>
           <Empty
             description={
@@ -281,7 +267,7 @@ export default function SpreadOpportunities({ wsData }) {
             rowKey="symbol"
             dataSource={opps}
             columns={columns}
-            loading={loading}
+            loading={isInitialLoading}
             pagination={false}
             size="small"
             scroll={{ x: 1100 }}
