@@ -12,9 +12,7 @@ backend/core/spot_basis_data_layer/__init__.py:3
 backend/core/spot_basis_reconciler/__init__.py:3
 backend/core/spot_basis_runtime/__init__.py:3
 backend/core/spread_arb_engine/__init__.py:3
-backend/db/__init__.py:5
 backend/infra/pnl_v2/runtime/__init__.py:3
-backend/models/database/__init__.py:3
 
 backend/core/exchange_manager/hedge_orders.py:1
 backend/core/exchange_manager/registry.py:1
@@ -65,11 +63,9 @@ backend/core/spot_basis_runtime/decision_preview.py:1
 backend/core/spot_basis_runtime/capital_snapshot.py:1
 backend/core/spot_basis_runtime/refresh_gate.py:1
 backend/core/spot_basis_runtime/funding_history_refresh.py:1
-backend/core/spot_basis_runtime/opportunities_api.py:1
 backend/core/spot_basis_runtime/history_logic.py:1
 backend/core/spot_basis_runtime/candidate_rows.py:1
 backend/core/spot_basis_runtime/auto_decision_api.py:1
-backend/core/spot_basis_runtime/auto_control_api.py:1
 backend/core/spot_basis_runtime/funding_stats.py:1
 backend/infra/pnl_v2/runtime/detail_api.py:1
 backend/infra/pnl_v2/runtime/export_api.py:1
