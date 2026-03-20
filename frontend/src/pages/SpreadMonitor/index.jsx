@@ -10,6 +10,7 @@ import {
 import useNowTick from '../../hooks/useNowTick';
 import api from '../../services/httpClient';
 import { useSpreadMonitorGroupsQuery } from '../../services/queries/spreadMonitorQueries';
+import { getApiErrorMessages } from '../../utils/error';
 
 // ── Spread Candlestick Chart ───────────────────────────────────────────────────
 const PAD = { left: 68, right: 16, top: 12, bottom: 52 };
@@ -314,9 +315,7 @@ export default function SpreadMonitor({ wsData }) {
       });
       setKlineData(res.data);
     } catch (e) {
-      const detail = e?.response?.data?.detail;
-      const msgs = detail?.errors || [detail?.message || e.message || '请求失败'];
-      setKlineError(msgs);
+      setKlineError(getApiErrorMessages(e, '请求失败'));
     } finally {
       setKlineLoading(false);
     }

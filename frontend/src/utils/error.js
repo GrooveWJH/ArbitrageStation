@@ -4,6 +4,16 @@ const readString = (value) => {
   return text;
 };
 
+const readMessageLike = (value) => {
+  const direct = readString(value);
+  if (direct) return direct;
+  if (value && typeof value === "object") {
+    const nested = readString(value.message);
+    if (nested) return nested;
+  }
+  return "";
+};
+
 export function getApiErrorMessage(error, fallback = "Request failed") {
   const detail = error?.response?.data?.detail;
   if (detail && typeof detail === "object") {
@@ -28,4 +38,16 @@ export function getApiErrorMessage(error, fallback = "Request failed") {
   if (message) return message;
 
   return fallback;
+}
+
+export function getApiErrorMessages(error, fallback = "Request failed") {
+  const detailErrors = error?.response?.data?.detail?.errors;
+  if (Array.isArray(detailErrors)) {
+    const messages = detailErrors
+      .map((item) => readMessageLike(item))
+      .filter(Boolean);
+    if (messages.length) return messages;
+  }
+
+  return [getApiErrorMessage(error, fallback)];
 }
