@@ -10,6 +10,13 @@ import {
   CheckCircleOutlined, CloseCircleFilled,
 } from '@ant-design/icons';
 import api from '../../services/httpClient';
+import {
+  useSpreadArbConfigQuery,
+  useSpreadArbHistoryPositionsQuery,
+  useSpreadArbMarginStatusQuery,
+  useSpreadArbOpenPositionsQuery,
+  useSpreadArbStatsQuery,
+} from '../../services/queries/spreadArbQueries';
 import { fmtTime } from '../../utils/time';
 
 function fmtPrice(v) {
@@ -271,70 +278,55 @@ function ConfigPanel({ cfg, onSave, saving }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function SpreadArb() {
-  const [stats, setStats]         = useState(null);
-  const [cfg, setCfg]             = useState(null);
-  const [positions, setPositions] = useState([]);
-  const [history, setHistory]     = useState([]);
-  const [marginData, setMarginData] = useState([]);
-  const [loading, setLoading]     = useState(false);
+  const statsQuery = useSpreadArbStatsQuery();
+  const cfgQuery = useSpreadArbConfigQuery();
+  const openPositionsQuery = useSpreadArbOpenPositionsQuery();
+  const historyPositionsQuery = useSpreadArbHistoryPositionsQuery();
+  const marginStatusQuery = useSpreadArbMarginStatusQuery();
+
+  const stats = statsQuery.data || null;
+  const cfg = cfgQuery.data || null;
+  const positions = openPositionsQuery.data?.positions || [];
+  const history = historyPositionsQuery.data?.positions || [];
+  const marginData = marginStatusQuery.data || [];
+
+  const isMainInitialLoading = [
+    statsQuery,
+    cfgQuery,
+    openPositionsQuery,
+    historyPositionsQuery,
+  ].some((q) => q.isLoading && !q.isFetched);
+  const isMainFetching = [
+    statsQuery,
+    cfgQuery,
+    openPositionsQuery,
+    historyPositionsQuery,
+  ].some((q) => q.isFetching);
+
+  const loading = isMainInitialLoading;
   const [saving, setSaving]       = useState(false);
   const [toggling, setToggling]   = useState(false);
   const [hedgeModal, setHedgeModal] = useState(null); // null | {results, loading}
   const [hedgeLoading, setHedgeLoading] = useState(false);
-  const isFetching = useRef(false);
-  const isMarginFetching = useRef(false);
 
-  const loadAll = useCallback(async (silent = false) => {
-    if (isFetching.current) return;
-    isFetching.current = true;
-    if (!silent) setLoading(true);
-    try {
-      const [statsRes, cfgRes, openRes, closedRes] = await Promise.all([
-        api.get('/spread-arb/stats'),
-        api.get('/spread-arb/config'),
-        api.get('/spread-arb/positions?status=open'),
-        api.get('/spread-arb/positions?status=closed&limit=50'),
-      ]);
-      setStats(statsRes.data);
-      setCfg(cfgRes.data);
-      setPositions(openRes.data.positions || []);
-      setHistory(closedRes.data.positions || []);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      isFetching.current = false;
-      if (!silent) setLoading(false);
-    }
-  }, []);
+  const refreshMain = useCallback(async () => {
+    await Promise.all([
+      statsQuery.refetch(),
+      cfgQuery.refetch(),
+      openPositionsQuery.refetch(),
+      historyPositionsQuery.refetch(),
+    ]);
+  }, [statsQuery, cfgQuery, openPositionsQuery, historyPositionsQuery]);
 
-  const loadMargin = useCallback(async () => {
-    if (isMarginFetching.current) return;
-    isMarginFetching.current = true;
-    try {
-      const res = await api.get('/spread-arb/margin-status');
-      setMarginData(res.data || []);
-    } catch (e) {
-      // silent
-    } finally {
-      isMarginFetching.current = false;
-    }
-  }, []);
-
-  useEffect(() => { loadAll(false); loadMargin(); }, [loadAll, loadMargin]);
-  useEffect(() => {
-    const t = setInterval(() => loadAll(true), 2000);
-    return () => clearInterval(t);
-  }, [loadAll]);
-  useEffect(() => {
-    const t = setInterval(loadMargin, 5000);
-    return () => clearInterval(t);
-  }, [loadMargin]);
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refreshMain(), marginStatusQuery.refetch()]);
+  }, [refreshMain, marginStatusQuery]);
 
   const handleToggle = async (enabled) => {
     setToggling(true);
     try {
       await api.put('/spread-arb/config', { spread_arb_enabled: enabled });
-      await loadAll(true);
+      await refreshMain();
     } finally {
       setToggling(false);
     }
@@ -344,7 +336,7 @@ export default function SpreadArb() {
     setSaving(true);
     try {
       await api.put('/spread-arb/config', newCfg);
-      await loadAll(true);
+      await refreshMain();
     } finally {
       setSaving(false);
     }
@@ -352,7 +344,7 @@ export default function SpreadArb() {
 
   const handleClose = async (id) => {
     await api.post(`/spread-arb/close/${id}`);
-    await loadAll(false);
+    await refreshMain();
   };
 
   const handleSetupHedge = async () => {
@@ -557,7 +549,11 @@ export default function SpreadArb() {
                 初始化对冲模式
               </Button>
             </Tooltip>
-            <Button icon={<ReloadOutlined />} onClick={() => loadAll(false)} loading={loading}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => { void handleRefresh(); }}
+              loading={isMainFetching || marginStatusQuery.isFetching}
+            >
               刷新
             </Button>
           </Space>

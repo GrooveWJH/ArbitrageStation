@@ -8,6 +8,7 @@ import {
   SortAscendingOutlined, SortDescendingOutlined, LineChartOutlined,
 } from '@ant-design/icons';
 import api from '../../services/httpClient';
+import { useSpreadMonitorGroupsQuery } from '../../services/queries/spreadMonitorQueries';
 
 // ── Spread Candlestick Chart ───────────────────────────────────────────────────
 const PAD = { left: 68, right: 16, top: 12, bottom: 52 };
@@ -278,10 +279,18 @@ function SortHeader({ label, tooltip, field, sortField, sortDir, onSort }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function SpreadMonitor({ wsData }) {
-  const [groups, setGroups] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState(null); // ms epoch
   const [nowTick, setNowTick] = useState(Date.now());
+  const {
+    data: groupsData,
+    isLoading,
+    isFetching,
+    isFetched,
+    dataUpdatedAt,
+    refetch: refetchGroups,
+  } = useSpreadMonitorGroupsQuery();
+  const groups = groupsData?.groups || [];
+  const isInitialLoading = isLoading && !isFetched;
+  const lastUpdated = dataUpdatedAt || null; // ms epoch
 
   // Live clock for staleness display
   useEffect(() => {
@@ -301,36 +310,7 @@ export default function SpreadMonitor({ wsData }) {
   const [klineLoading, setKlineLoading] = useState(false);
   const [klineError, setKlineError] = useState(null);
 
-  const fetchedAt = useRef(null);
-  const isFetching = useRef(false); // prevent concurrent requests
   useCountdowns();
-
-  // ── Initial load (with spinner) ───────────────────────────────────────────
-  const load = useCallback(async (silent = false) => {
-    if (isFetching.current) return; // skip if previous request still in flight
-    isFetching.current = true;
-    if (!silent) setLoading(true);
-    try {
-      const res = await api.get('/spread-monitor/groups');
-      setGroups(res.data.groups || []);
-      fetchedAt.current = Date.now();
-      setLastUpdated(Date.now());
-    } catch (e) {
-      console.error(e);
-    } finally {
-      isFetching.current = false;
-      if (!silent) setLoading(false);
-    }
-  }, []);
-
-  // Initial load with spinner
-  useEffect(() => { load(false); }, [load]);
-
-  // 1s polling — silent (no spinner, no flicker) while page is active
-  useEffect(() => {
-    const t = setInterval(() => load(true), 1000);
-    return () => clearInterval(t);
-  }, [load]);
 
   const handleSort = (field, dir) => {
     setSortField(field);
@@ -705,7 +685,7 @@ export default function SpreadMonitor({ wsData }) {
           </Col>
           <Col flex="1" />
           <Col>
-            <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>
+            <Button icon={<ReloadOutlined />} onClick={() => { void refetchGroups(); }} loading={isFetching && !isInitialLoading}>
               手动刷新
             </Button>
           </Col>
@@ -737,7 +717,7 @@ export default function SpreadMonitor({ wsData }) {
           rowKey="_key"
           dataSource={rows}
           columns={columns}
-          loading={loading}
+          loading={isInitialLoading}
           pagination={{ pageSize: 100, showSizeChanger: true, pageSizeOptions: ['50', '100', '200'] }}
           size="small"
           scroll={{ x: 1000 }}
