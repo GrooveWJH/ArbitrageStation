@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from db import get_db
 from db.models import EquitySnapshot, Exchange, Position, SpreadPosition, Strategy, TradeLog
-from infra.exchange.gateway import fetch_exchange_total_equity_usdt, get_vip0_taker_fee
+from domains.analytics.service import fetch_exchange_total_equity_usdt, get_vip0_taker_fee
 from shared.time import utc_now
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])

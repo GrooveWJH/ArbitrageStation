@@ -8,8 +8,7 @@ from sqlalchemy.orm import Session
 
 from db import get_db
 from db.models import Exchange
-from infra.exchange.gateway import get_supported_exchanges, invalidate_instance
-from infra.exchange.profile_gateway import default_is_unified_account
+from domains.exchanges.service import default_is_unified_account, get_supported_exchanges, invalidate_instance
 
 router = APIRouter(prefix="/api/exchanges", tags=["exchanges"])
 
