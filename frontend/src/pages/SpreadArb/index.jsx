@@ -9,10 +9,8 @@ import {
   ArrowUpOutlined, ArrowDownOutlined, ThunderboltOutlined,
   CheckCircleOutlined, CloseCircleFilled,
 } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../services/httpClient';
 import { fmtTime } from '../../utils/time';
-
-const api = axios.create({ baseURL: '/api' });
 
 function fmtPrice(v) {
   if (!v) return '—';

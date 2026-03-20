@@ -7,7 +7,7 @@ import {
   ReloadOutlined, SearchOutlined, ThunderboltOutlined,
   SortAscendingOutlined, SortDescendingOutlined, LineChartOutlined,
 } from '@ant-design/icons';
-import axios from 'axios';
+import api from '../../services/httpClient';
 
 // ── Spread Candlestick Chart ───────────────────────────────────────────────────
 const PAD = { left: 68, right: 16, top: 12, bottom: 52 };
@@ -223,8 +223,6 @@ function SpreadKlineChart({ candles, timeframe, stats }) {
     </div>
   );
 }
-
-const api = axios.create({ baseURL: '/api' });
 
 // ── Countdown helper ──────────────────────────────────────────────────────────
 function useCountdowns() {

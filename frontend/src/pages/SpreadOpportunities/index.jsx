@@ -1,9 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Card, Table, Tag, Tooltip, Badge, Space, Button, Row, Col, Statistic, Empty } from 'antd';
 import { ReloadOutlined, ThunderboltOutlined, RiseOutlined } from '@ant-design/icons';
-import axios from 'axios';
-
-const api = axios.create({ baseURL: '/api' });
+import api from '../../services/httpClient';
 
 function fmtCountdown(secs) {
   if (secs == null) return '—';
