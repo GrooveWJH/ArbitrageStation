@@ -11,6 +11,12 @@ async function fetchSpotBasisAutoCycleLast() {
   return res.data || null;
 }
 
+async function fetchSpotBasisAutoActiveExchanges() {
+  const res = await api.get("/exchanges/");
+  const rows = Array.isArray(res.data) ? res.data : [];
+  return rows.filter((x) => x.is_active);
+}
+
 function buildOpportunityParams(filters) {
   return {
     symbol: filters?.symbol || "",
@@ -121,6 +127,14 @@ export function useSpotBasisAutoCycleLastQuery() {
     queryFn: fetchSpotBasisAutoCycleLast,
     refetchInterval: 5000,
     refetchIntervalInBackground: true,
+    retry: false,
+  });
+}
+
+export function useSpotBasisAutoActiveExchangesQuery() {
+  return useQuery({
+    queryKey: ["spot-basis-auto", "active-exchanges"],
+    queryFn: fetchSpotBasisAutoActiveExchanges,
     retry: false,
   });
 }

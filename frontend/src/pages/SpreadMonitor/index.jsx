@@ -7,6 +7,7 @@ import {
   ReloadOutlined, SearchOutlined, ThunderboltOutlined,
   SortAscendingOutlined, SortDescendingOutlined, LineChartOutlined,
 } from '@ant-design/icons';
+import useNowTick from '../../hooks/useNowTick';
 import api from '../../services/httpClient';
 import { useSpreadMonitorGroupsQuery } from '../../services/queries/spreadMonitorQueries';
 
@@ -225,16 +226,6 @@ function SpreadKlineChart({ candles, timeframe, stats }) {
   );
 }
 
-// ── Countdown helper ──────────────────────────────────────────────────────────
-function useCountdowns() {
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setTick(n => n + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
-  return tick;
-}
-
 function fmtCountdown(secsToFunding) {
   if (secsToFunding == null) return '—';
   const s = Math.max(0, secsToFunding);
@@ -279,7 +270,7 @@ function SortHeader({ label, tooltip, field, sortField, sortDir, onSort }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function SpreadMonitor({ wsData }) {
-  const [nowTick, setNowTick] = useState(Date.now());
+  const nowTick = useNowTick(1000);
   const {
     data: groupsData,
     isLoading,
@@ -292,12 +283,6 @@ export default function SpreadMonitor({ wsData }) {
   const isInitialLoading = isLoading && !isFetched;
   const lastUpdated = dataUpdatedAt || null; // ms epoch
 
-  // Live clock for staleness display
-  useEffect(() => {
-    const t = setInterval(() => setNowTick(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-
   const [search, setSearch] = useState('');
   const [minSpread, setMinSpread] = useState(0);
   const [minVolume, setMinVolume] = useState(0);
@@ -309,8 +294,6 @@ export default function SpreadMonitor({ wsData }) {
   const [klineData, setKlineData] = useState(null);
   const [klineLoading, setKlineLoading] = useState(false);
   const [klineError, setKlineError] = useState(null);
-
-  useCountdowns();
 
   const handleSort = (field, dir) => {
     setSortField(field);

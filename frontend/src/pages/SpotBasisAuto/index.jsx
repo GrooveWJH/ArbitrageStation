@@ -29,7 +29,6 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import {
-  getExchanges,
   getSpotBasisAutoConfig,
   getSpotBasisAutoStatus,
   getSpotBasisHistory,
@@ -39,6 +38,7 @@ import {
   updateSpotBasisAutoConfig,
 } from '../../services/api';
 import {
+  useSpotBasisAutoActiveExchangesQuery,
   useSpotBasisAutoDecisionPreviewQuery,
   useSpotBasisAutoCycleLastQuery,
   useSpotBasisAutoCycleLogsQuery,
@@ -665,7 +665,6 @@ function normalizeRow(r) {
 
 export default function SpotBasisAuto() {
   const [rows, setRows] = useState([]);
-  const [exchanges, setExchanges] = useState([]);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState([]);
   const [cfg, setCfg] = useState(null);
@@ -707,6 +706,8 @@ export default function SpotBasisAuto() {
     action_mode: 'open',
     sort_by: 'score_strict',
   });
+  const exchangesQuery = useSpotBasisAutoActiveExchangesQuery();
+  const exchanges = exchangesQuery.data || [];
   const opportunitiesQuery = useSpotBasisAutoOpportunitiesQuery(filters, expanded.length === 0);
   const decisionPreviewQuery = useSpotBasisAutoDecisionPreviewQuery(filters);
   const decisionLoading = decisionPreviewQuery.isPending;
@@ -767,9 +768,6 @@ export default function SpotBasisAuto() {
   );
 
   useEffect(() => {
-    getExchanges()
-      .then(({ data }) => setExchanges((data || []).filter((x) => x.is_active)))
-      .catch(() => {});
     loadCfg().catch((e) => message.error(errText(e, '自动策略配置加载失败')));
   }, [loadCfg]);
 

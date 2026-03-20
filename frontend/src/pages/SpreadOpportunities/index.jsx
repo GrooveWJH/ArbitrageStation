@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, Table, Tag, Tooltip, Badge, Space, Button, Row, Col, Statistic, Empty } from 'antd';
 import { ReloadOutlined, ThunderboltOutlined, RiseOutlined } from '@ant-design/icons';
+import useNowTick from '../../hooks/useNowTick';
 import { useSpreadOpportunitiesQuery } from '../../services/queries/spreadMonitorQueries';
 
 function fmtCountdown(secs) {
@@ -23,7 +24,7 @@ function fmtVol(v) {
 }
 
 export default function SpreadOpportunities({ wsData }) {
-  const [nowTick, setNowTick] = useState(Date.now());
+  const nowTick = useNowTick(1000);
   const {
     data,
     isLoading,
@@ -37,11 +38,6 @@ export default function SpreadOpportunities({ wsData }) {
   const isInitialLoading = isLoading && !isFetched;
   const isRefreshing = isFetching && !isInitialLoading;
   const lastUpdated = dataUpdatedAt || null;
-
-  useEffect(() => {
-    const t = setInterval(() => setNowTick(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
 
   const columns = [
     {
