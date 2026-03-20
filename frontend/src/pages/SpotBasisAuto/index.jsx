@@ -29,15 +29,10 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import {
-  getAccountOverview,
   getExchanges,
-  getMarginStatus,
   getSpotBasisAutoDecisionPreview,
   getSpotBasisAutoConfig,
-  getSpotBasisAutoCycleLast,
-  getSpotBasisAutoCycleLogs,
   getSpotBasisAutoStatus,
-  getSpotBasisDrawdownWatermark,
   getSpotBasisHistory,
   getSpotBasisOpportunities,
   resetSpotBasisDrawdownWatermark,
@@ -45,6 +40,12 @@ import {
   setSpotBasisAutoStatus,
   updateSpotBasisAutoConfig,
 } from '../../services/api';
+import {
+  useSpotBasisAutoCycleLastQuery,
+  useSpotBasisAutoCycleLogsQuery,
+  useSpotBasisAutoExchangeFundsQuery,
+  useSpotBasisDrawdownWatermarkQuery,
+} from '../../services/queries/spotBasisAutoQueries';
 
 const PAD = { left: 58, right: 64, top: 10, bottom: 34 };
 const HISTORY_CACHE_TTL_MS = 60 * 1000;
@@ -674,15 +675,19 @@ export default function SpotBasisAuto() {
   const previewInFlight = useRef(false);
   const [decisionPreview, setDecisionPreview] = useState(null);
   const [decisionLoading, setDecisionLoading] = useState(false);
-  const [cycleLast, setCycleLast] = useState(null);
   const [cycleLogs, setCycleLogs] = useState([]);
   const [cycleRunning, setCycleRunning] = useState(false);
-  const [drawdownWatermark, setDrawdownWatermark] = useState(null);
-  const [drawdownWatermarkLoading, setDrawdownWatermarkLoading] = useState(false);
   const [drawdownWatermarkResetting, setDrawdownWatermarkResetting] = useState(false);
-  const [exchangeFunds, setExchangeFunds] = useState([]);
-  const [exchangeFundsLoading, setExchangeFundsLoading] = useState(false);
-  const fundsInFlight = useRef(false);
+  const [exchangeFundsRefreshing, setExchangeFundsRefreshing] = useState(false);
+  const cycleLastQuery = useSpotBasisAutoCycleLastQuery();
+  const cycleLogsQuery = useSpotBasisAutoCycleLogsQuery(160);
+  const drawdownWatermarkQuery = useSpotBasisDrawdownWatermarkQuery();
+  const exchangeFundsQuery = useSpotBasisAutoExchangeFundsQuery();
+  const cycleLast = cycleLastQuery.data || null;
+  const drawdownWatermark = drawdownWatermarkQuery.data || null;
+  const drawdownWatermarkLoading = drawdownWatermarkQuery.isPending;
+  const exchangeFunds = exchangeFundsQuery.data || [];
+  const exchangeFundsLoading = exchangeFundsQuery.isPending || exchangeFundsRefreshing;
 
   const exchangeOptions = useMemo(
     () =>
@@ -788,113 +793,18 @@ export default function SpotBasisAuto() {
     [filters]
   );
 
-  const loadCycleLast = useCallback(async () => {
-    try {
-      const { data } = await getSpotBasisAutoCycleLast();
-      setCycleLast(data || null);
-    } catch {
-      setCycleLast(null);
-    }
-  }, []);
-
-  const loadCycleLogs = useCallback(async (silent = true) => {
-    try {
-      const { data } = await getSpotBasisAutoCycleLogs({ limit: 160 });
-      const items = (Array.isArray(data?.items) ? data.items : []).map((x, idx) => ({
-        ...(x || {}),
-        __key: `${num(x?.ts, 0)}-${idx}`,
-      }));
-      setCycleLogs(items);
-    } catch (e) {
-      if (!silent) message.error(errText(e, '日志加载失败'));
-      if (!silent) setCycleLogs([]);
-    }
-  }, []);
-
-  const loadDrawdownWatermark = useCallback(async (silent = true) => {
-    if (!silent) setDrawdownWatermarkLoading(true);
-    try {
-      const { data } = await getSpotBasisDrawdownWatermark();
-      setDrawdownWatermark(data || null);
-    } catch (e) {
-      if (!silent) message.error(errText(e, '高水位读取失败'));
-      if (!silent) setDrawdownWatermark(null);
-    } finally {
-      if (!silent) setDrawdownWatermarkLoading(false);
-    }
-  }, []);
-
-  const loadExchangeFunds = useCallback(
-    async (silent = false) => {
-      if (fundsInFlight.current) return;
-      fundsInFlight.current = true;
-      if (!silent) setExchangeFundsLoading(true);
-      try {
-        const [overviewRes, marginRes] = await Promise.allSettled([
-          getAccountOverview(),
-          getMarginStatus(),
-        ]);
-        const overviewRows =
-          overviewRes.status === 'fulfilled' ? (overviewRes.value?.data || []) : [];
-        const marginRows =
-          marginRes.status === 'fulfilled' ? (marginRes.value?.data || []) : [];
-        const marginMap = new Map(
-          (marginRows || []).map((x) => [num(x.exchange_id, 0), x || {}])
-        );
-
-        const rows = (overviewRows || []).map((x) => {
-          const exchangeId = num(x.exchange_id, 0);
-          const margin = marginMap.get(exchangeId) || {};
-          const unified = !!x.unified_account;
-          const totalUnified = num(x.total_usdt, 0);
-          const spotUsdt = num(x.spot_usdt, 0);
-          const futuresUsdt = num(x.futures_usdt, 0);
-          const totalUsdt = unified
-            ? totalUnified
-            : totalUnified > 0
-            ? totalUnified
-            : spotUsdt + futuresUsdt;
-          return {
-            exchange_id: exchangeId,
-            exchange_name: x.exchange_name || `EX#${exchangeId}`,
-            unified_account: unified,
-            total_usdt: totalUsdt,
-            spot_usdt: spotUsdt,
-            futures_usdt: futuresUsdt,
-            positions_count: (x.positions || []).length,
-            used_pct: num(margin.used_pct, 0),
-            current_notional: num(margin.current_notional, 0),
-            remaining_notional: num(margin.remaining_notional, 0),
-            max_notional: num(margin.max_notional, 0),
-            error: x.error || margin.error || '',
-            warning: x.warning || '',
-          };
-        });
-
-        rows.sort((a, b) => num(b.total_usdt, 0) - num(a.total_usdt, 0));
-        setExchangeFunds(rows);
-
-        if (!silent && overviewRes.status === 'rejected' && marginRes.status === 'rejected') {
-          message.error('交易所资金加载失败');
-        }
-      } finally {
-        fundsInFlight.current = false;
-        if (!silent) setExchangeFundsLoading(false);
-      }
-    },
-    []
-  );
-
   useEffect(() => {
     getExchanges()
       .then(({ data }) => setExchanges((data || []).filter((x) => x.is_active)))
       .catch(() => {});
     loadCfg().catch((e) => message.error(errText(e, '自动策略配置加载失败')));
-    loadCycleLast().catch(() => {});
-    loadCycleLogs(true).catch(() => {});
-    loadDrawdownWatermark(false).catch(() => {});
-    loadExchangeFunds(false).catch(() => {});
-  }, [loadCfg, loadCycleLast, loadCycleLogs, loadDrawdownWatermark, loadExchangeFunds]);
+  }, [loadCfg]);
+
+  useEffect(() => {
+    if (cycleLogsQuery.data) {
+      setCycleLogs(cycleLogsQuery.data);
+    }
+  }, [cycleLogsQuery.data]);
 
   useEffect(() => {
     loadRows(false);
@@ -914,26 +824,6 @@ export default function SpotBasisAuto() {
     const t = setInterval(() => loadDecisionPreview(true), 60000);
     return () => clearInterval(t);
   }, [loadDecisionPreview]);
-
-  useEffect(() => {
-    const t = setInterval(() => loadCycleLast(), 5000);
-    return () => clearInterval(t);
-  }, [loadCycleLast]);
-
-  useEffect(() => {
-    const t = setInterval(() => loadDrawdownWatermark(true), 10000);
-    return () => clearInterval(t);
-  }, [loadDrawdownWatermark]);
-
-  useEffect(() => {
-    const t = setInterval(() => loadCycleLogs(true), 5000);
-    return () => clearInterval(t);
-  }, [loadCycleLogs]);
-
-  useEffect(() => {
-    const t = setInterval(() => loadExchangeFunds(true), 10000);
-    return () => clearInterval(t);
-  }, [loadExchangeFunds]);
 
   const stats = useMemo(() => {
     if (!rows.length) return { c: 0, e: 0, s: 0 };
@@ -1003,9 +893,15 @@ export default function SpotBasisAuto() {
   const runCycleOnce = async () => {
     setCycleRunning(true);
     try {
-      const { data } = await runSpotBasisAutoCycleOnce();
-      setCycleLast(data || null);
-      await Promise.all([loadRows(true), loadDecisionPreview(true), loadCycleLast(), loadDrawdownWatermark(true)]);
+      await runSpotBasisAutoCycleOnce();
+      await Promise.all([
+        loadRows(true),
+        loadDecisionPreview(true),
+        cycleLastQuery.refetch(),
+        cycleLogsQuery.refetch(),
+        drawdownWatermarkQuery.refetch(),
+        exchangeFundsQuery.refetch(),
+      ]);
       message.success('周期执行完成');
     } catch (e) {
       message.error(errText(e, '操作失败'));
@@ -1018,13 +914,31 @@ export default function SpotBasisAuto() {
     setDrawdownWatermarkResetting(true);
     try {
       const { data } = await resetSpotBasisDrawdownWatermark();
-      setDrawdownWatermark(data || null);
-      await loadCycleLast();
+      await Promise.all([drawdownWatermarkQuery.refetch(), cycleLastQuery.refetch()]);
       message.success(`高水位已重置到 ${fmtUsd(num(data?.peak_nav_usdt, 0), 2)}`);
     } catch (e) {
       message.error(errText(e, '重置高水位失败'));
     } finally {
       setDrawdownWatermarkResetting(false);
+    }
+  };
+
+  const refreshExchangeFunds = async () => {
+    setExchangeFundsRefreshing(true);
+    try {
+      const res = await exchangeFundsQuery.refetch();
+      if (res.error) {
+        message.error(errText(res.error, '交易所资金加载失败'));
+      }
+    } finally {
+      setExchangeFundsRefreshing(false);
+    }
+  };
+
+  const refreshCycleLogs = async () => {
+    const res = await cycleLogsQuery.refetch();
+    if (res.error) {
+      message.error(errText(res.error, '日志加载失败'));
     }
   };
 
@@ -1443,7 +1357,7 @@ export default function SpotBasisAuto() {
               <Button
                 size="small"
                 icon={<ReloadOutlined />}
-                onClick={() => loadExchangeFunds(false)}
+                onClick={() => { void refreshExchangeFunds(); }}
                 loading={exchangeFundsLoading}
               >
                 刷新
@@ -1509,7 +1423,7 @@ export default function SpotBasisAuto() {
             style={{ marginBottom: 12 }}
             extra={
               <Space>
-                <Button size="small" onClick={() => loadCycleLogs(false)}>
+                <Button size="small" onClick={() => { void refreshCycleLogs(); }}>
                   刷新
                 </Button>
                 <Button size="small" danger onClick={() => setCycleLogs([])}>
