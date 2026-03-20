@@ -3,64 +3,67 @@ import {
   Card, Table, Tag, Input, InputNumber, Select, Space, Button, Row, Col, Tooltip, Badge
 } from 'antd';
 import { SearchOutlined, ReloadOutlined, FilterOutlined } from '@ant-design/icons';
-import { getFundingRates, getExchanges } from '../../services/api';
+import {
+  useFundingRateExchangesQuery,
+  useFundingRatesQuery,
+} from '../../services/queries/fundingRateQueries';
 import { fmtTime } from '../../utils/time';
+
+const EMPTY_FILTERS = {
+  symbol: '',
+  min_rate: null,
+  min_volume: null,
+  exchange_ids: [],
+};
+
+function applyFundingRateFilters(rows, filters) {
+  let result = Array.isArray(rows) ? rows : [];
+  if (filters.symbol) {
+    const symbol = filters.symbol.toUpperCase();
+    result = result.filter((r) => r.symbol.toUpperCase().includes(symbol));
+  }
+  if (filters.min_rate != null) {
+    result = result.filter((r) => Math.abs(r.rate_pct) >= filters.min_rate);
+  }
+  if (filters.exchange_ids.length) {
+    result = result.filter((r) => filters.exchange_ids.includes(r.exchange_id));
+  }
+  if (filters.min_volume != null && filters.min_volume > 0) {
+    result = result.filter((r) => (r.volume_24h || 0) >= filters.min_volume);
+  }
+  return result;
+}
 
 export default function FundingRates({ wsData }) {
   const [rates, setRates] = useState([]);
-  const [exchanges, setExchanges] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [filters, setFilters] = useState({
-    symbol: '',
-    min_rate: null,
-    min_volume: null,
-    exchange_ids: [],
-  });
-
-  const loadExchanges = async () => {
-    const { data } = await getExchanges();
-    setExchanges(data);
-  };
-
-  const loadRates = async () => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (filters.symbol) params.symbol = filters.symbol;
-      if (filters.min_rate != null) params.min_rate = filters.min_rate;
-      if (filters.min_volume != null) params.min_volume = filters.min_volume;
-      if (filters.exchange_ids.length) params.exchange_ids = filters.exchange_ids.join(',');
-      const { data } = await getFundingRates(params);
-      setRates(data);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [filters, setFilters] = useState(EMPTY_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
+  const exchangesQuery = useFundingRateExchangesQuery();
+  const ratesQuery = useFundingRatesQuery(appliedFilters);
+  const exchanges = exchangesQuery.data || [];
+  const loading = ratesQuery.isPending || ratesQuery.isFetching;
 
   useEffect(() => {
-    loadExchanges();
-    loadRates();
-  }, []);
+    if (ratesQuery.data) {
+      setRates(ratesQuery.data);
+    }
+  }, [ratesQuery.data]);
 
   // Real-time update from WS
   useEffect(() => {
     if (wsData?.type === 'funding_rates') {
-      let newRates = wsData.data.rates;
-      if (filters.symbol) {
-        newRates = newRates.filter(r => r.symbol.toUpperCase().includes(filters.symbol.toUpperCase()));
-      }
-      if (filters.min_rate != null) {
-        newRates = newRates.filter(r => Math.abs(r.rate_pct) >= filters.min_rate);
-      }
-      if (filters.exchange_ids.length) {
-        newRates = newRates.filter(r => filters.exchange_ids.includes(r.exchange_id));
-      }
-      if (filters.min_volume != null && filters.min_volume > 0) {
-        newRates = newRates.filter(r => (r.volume_24h || 0) >= filters.min_volume);
-      }
-      setRates(newRates);
+      setRates(applyFundingRateFilters(wsData.data.rates, appliedFilters));
     }
-  }, [wsData]);
+  }, [wsData, appliedFilters]);
+
+  const applyFilters = () => {
+    setAppliedFilters(filters);
+  };
+
+  const resetFilters = () => {
+    setFilters(EMPTY_FILTERS);
+    setAppliedFilters(EMPTY_FILTERS);
+  };
 
   const columns = [
     {
@@ -132,7 +135,11 @@ export default function FundingRates({ wsData }) {
         </Space>
       }
       extra={
-        <Button icon={<ReloadOutlined />} onClick={loadRates} loading={loading}>
+        <Button
+          icon={<ReloadOutlined />}
+          onClick={() => { void ratesQuery.refetch(); }}
+          loading={loading}
+        >
           刷新
         </Button>
       }
@@ -145,7 +152,7 @@ export default function FundingRates({ wsData }) {
             prefix={<SearchOutlined />}
             value={filters.symbol}
             onChange={e => setFilters(f => ({ ...f, symbol: e.target.value }))}
-            onPressEnter={loadRates}
+            onPressEnter={applyFilters}
             allowClear
           />
         </Col>
@@ -180,15 +187,12 @@ export default function FundingRates({ wsData }) {
           />
         </Col>
         <Col span={3}>
-          <Button type="primary" onClick={loadRates} icon={<FilterOutlined />}>
+          <Button type="primary" onClick={applyFilters} icon={<FilterOutlined />}>
             筛选
           </Button>
         </Col>
         <Col span={3}>
-          <Button onClick={() => {
-            setFilters({ symbol: '', min_rate: null, min_volume: null, exchange_ids: [] });
-            setTimeout(loadRates, 0);
-          }}>重置</Button>
+          <Button onClick={resetFilters}>重置</Button>
         </Col>
       </Row>
 
