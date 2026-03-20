@@ -25,26 +25,17 @@ import {
   ReloadOutlined,
 } from '@ant-design/icons';
 import {
-  getExchanges,
-  getPnlV2Strategies,
   getPnlV2StrategyDetail,
   openStrategy,
   closeStrategy,
-  getOpportunities,
-  getSpotOpportunities,
 } from '../../services/api';
+import { usePositionsOverviewQuery } from '../../services/queries/positionsQueries';
 import { fmtTime } from '../../utils/time';
 import { TermLabel } from '../../components/TermHint';
 
 export default function Positions() {
-  const [strategies, setStrategies] = useState([]);
-  const [exchanges, setExchanges] = useState([]);
-  const [opportunities, setOpportunities] = useState([]);
-  const [spotOpportunities, setSpotOpportunities] = useState([]);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(15);
-  const [totalCount, setTotalCount] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [detailDrawer, setDetailDrawer] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -52,56 +43,18 @@ export default function Positions() {
   const [statusFilter, setStatusFilter] = useState('active');
   const [strategyType, setStrategyType] = useState('cross_exchange');
   const [form] = Form.useForm();
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const [s, e, o, so] = await Promise.all([
-        getPnlV2Strategies({
-          days: 0,
-          status: statusFilter,
-          page,
-          page_size: pageSize,
-        }),
-        getExchanges(),
-        getOpportunities({ min_diff: 0.01 }),
-        getSpotOpportunities({ min_rate: 0.01 }),
-      ]);
-      const rows = ((s.data && s.data.rows) || []).map((r) => ({
-        id: r.strategy_id,
-        name: r.name,
-        strategy_type: r.strategy_type,
-        symbol: r.symbol,
-        long_exchange: r.long_exchange,
-        short_exchange: r.short_exchange,
-        current_annualized: r.current_annualized,
-        initial_margin_usd: r.initial_margin_usd,
-        unrealized_pnl: r.spread_pnl_usdt,
-        funding_pnl_usd: r.funding_pnl_usdt,
-        total_pnl_usd: r.total_pnl_usdt,
-        quality: r.quality,
-        funding_expected_event_count: r.funding_expected_event_count,
-        funding_captured_event_count: r.funding_captured_event_count,
-        status: r.status,
-        close_reason: r.close_reason,
-        created_at: r.created_at,
-        closed_at: r.closed_at,
-      }));
-      setStrategies(rows);
-      setTotalCount(Number(s?.data?.total_count || 0));
-      setExchanges(e.data.filter((ex) => ex.is_active));
-      setOpportunities(o.data);
-      setSpotOpportunities(so.data);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-    const timer = setInterval(load, 15000);
-    return () => clearInterval(timer);
-  }, [statusFilter, page, pageSize]);
+  const positionsOverviewQuery = usePositionsOverviewQuery({
+    status: statusFilter,
+    page,
+    pageSize,
+  });
+  const overview = positionsOverviewQuery.data || {};
+  const strategies = overview.strategies || [];
+  const exchanges = overview.exchanges || [];
+  const opportunities = overview.opportunities || [];
+  const spotOpportunities = overview.spotOpportunities || [];
+  const totalCount = overview.totalCount || 0;
+  const loading = positionsOverviewQuery.isPending || positionsOverviewQuery.isFetching;
 
   useEffect(() => {
     setPage(1);
@@ -113,7 +66,7 @@ export default function Positions() {
       message.success('Strategy opened');
       setOpenModal(false);
       form.resetFields();
-      load();
+      await positionsOverviewQuery.refetch();
     } catch (e) {
       message.error(`Open failed: ${e.response?.data?.detail || e.message}`);
     }
@@ -123,7 +76,7 @@ export default function Positions() {
     try {
       await closeStrategy(id, { reason: 'manual_close' });
       message.success('Close request sent');
-      load();
+      await positionsOverviewQuery.refetch();
     } catch (e) {
       message.error(`Close failed: ${e.message}`);
     }
@@ -321,7 +274,11 @@ export default function Positions() {
                 { label: 'All', value: undefined },
               ]}
             />
-            <Button icon={<ReloadOutlined />} onClick={load} loading={loading}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => { void positionsOverviewQuery.refetch(); }}
+              loading={loading}
+            >
               Refresh
             </Button>
             <Button type="primary" icon={<PlusOutlined />} onClick={() => setOpenModal(true)}>

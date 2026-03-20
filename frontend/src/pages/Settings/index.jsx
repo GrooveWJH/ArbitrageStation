@@ -8,11 +8,18 @@ import {
   SafetyOutlined, SettingOutlined, GlobalOutlined, SendOutlined,
 } from '@ant-design/icons';
 import {
-  getRiskRules, createRiskRule, updateRiskRule, deleteRiskRule,
-  getEmailConfig, updateEmailConfig, testEmail,
-  getAppConfig, updateAppConfig,
-  getExchanges, getSupportedExchanges, addExchange, updateExchange, deleteExchange,
+  createRiskRule, updateRiskRule, deleteRiskRule,
+  updateEmailConfig, testEmail,
+  updateAppConfig,
+  addExchange, updateExchange, deleteExchange,
 } from '../../services/api';
+import {
+  useAppConfigQuery,
+  useEmailConfigQuery,
+  useRiskRulesQuery,
+  useSettingsExchangesQuery,
+  useSupportedExchangesQuery,
+} from '../../services/queries/settingsQueries';
 
 const RULE_TYPE_OPTIONS = [
   { label: '亏损百分比触发 (%)', value: 'loss_pct' },
@@ -29,17 +36,11 @@ const ACTION_OPTIONS = [
 
 // ─── Risk Rules Tab ───────────────────────────────────────────────────────────
 function RiskRulesTab() {
-  const [rules, setRules] = useState([]);
+  const riskRulesQuery = useRiskRulesQuery();
+  const rules = riskRulesQuery.data || [];
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState(null);
   const [form] = Form.useForm();
-
-  const load = async () => {
-    const { data } = await getRiskRules();
-    setRules(data);
-  };
-
-  useEffect(() => { load(); }, []);
 
   const openCreate = () => { setEditingRule(null); form.resetFields(); setModalOpen(true); };
   const openEdit = (rule) => {
@@ -58,21 +59,29 @@ function RiskRulesTab() {
         message.success('规则已创建');
       }
       setModalOpen(false);
-      load();
+      await riskRulesQuery.refetch();
     } catch (e) {
       message.error('操作失败: ' + e.message);
     }
   };
 
   const handleDelete = async (id) => {
-    await deleteRiskRule(id);
-    message.success('规则已删除');
-    load();
+    try {
+      await deleteRiskRule(id);
+      message.success('规则已删除');
+      await riskRulesQuery.refetch();
+    } catch (e) {
+      message.error('删除失败: ' + e.message);
+    }
   };
 
   const handleToggle = async (rule, enabled) => {
-    await updateRiskRule(rule.id, { is_enabled: enabled });
-    load();
+    try {
+      await updateRiskRule(rule.id, { is_enabled: enabled });
+      await riskRulesQuery.refetch();
+    } catch (e) {
+      message.error('更新失败: ' + e.message);
+    }
   };
 
   const columns = [
@@ -122,7 +131,14 @@ function RiskRulesTab() {
         description='每条规则独立运行。「亏损百分比」规则中，设置80表示亏损≥80%时触发；「立即平仓」会同时平掉该策略的所有仓位（含对冲仓）。'
         type="info" showIcon closable style={{ marginBottom: 16 }}
       />
-      <Table dataSource={rules} columns={columns} rowKey="id" size="small" pagination={false} />
+      <Table
+        dataSource={rules}
+        columns={columns}
+        rowKey="id"
+        size="small"
+        pagination={false}
+        loading={riskRulesQuery.isPending || riskRulesQuery.isFetching}
+      />
 
       <Modal
         title={editingRule ? '编辑风控规则' : '新增风控规则'}
@@ -177,12 +193,15 @@ function RiskRulesTab() {
 // ─── Email Config Tab ─────────────────────────────────────────────────────────
 function EmailTab() {
   const [form] = Form.useForm();
+  const emailConfigQuery = useEmailConfigQuery();
   const [loading, setLoading] = useState(false);
   const [testing, setTesting] = useState(false);
 
   useEffect(() => {
-    getEmailConfig().then(({ data }) => form.setFieldsValue(data));
-  }, []);
+    if (emailConfigQuery.data) {
+      form.setFieldsValue(emailConfigQuery.data);
+    }
+  }, [emailConfigQuery.data, form]);
 
   const handleSave = async (values) => {
     setLoading(true);
@@ -203,7 +222,7 @@ function EmailTab() {
   };
 
   return (
-    <Card title={<Space><MailOutlined />邮件通知配置</Space>}>
+    <Card title={<Space><MailOutlined />邮件通知配置</Space>} loading={emailConfigQuery.isPending}>
       <Form form={form} layout="vertical" onFinish={handleSave} style={{ maxWidth: 600 }}>
         <Row gutter={16}>
           <Col span={16}>
@@ -249,19 +268,16 @@ function EmailTab() {
 
 // ─── Exchange Config Tab ──────────────────────────────────────────────────────
 function ExchangeTab() {
-  const [exchanges, setExchanges] = useState([]);
-  const [supported, setSupported] = useState([]);
+  const exchangesQuery = useSettingsExchangesQuery();
+  const supportedExchangesQuery = useSupportedExchangesQuery();
+  const exchanges = exchangesQuery.data || [];
+  const supported = supportedExchangesQuery.data || [];
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEx, setEditingEx] = useState(null);
   const [form] = Form.useForm();
-
-  const load = async () => {
-    const [e, s] = await Promise.all([getExchanges(), getSupportedExchanges()]);
-    setExchanges(e.data);
-    setSupported(s.data);
+  const refetchAll = async () => {
+    await Promise.all([exchangesQuery.refetch(), supportedExchangesQuery.refetch()]);
   };
-
-  useEffect(() => { load(); }, []);
 
   const openCreate = () => { setEditingEx(null); form.resetFields(); setModalOpen(true); };
   const openEdit = (ex) => {
@@ -286,21 +302,29 @@ function ExchangeTab() {
         message.success('交易所已添加');
       }
       setModalOpen(false);
-      load();
+      await refetchAll();
     } catch (e) {
       message.error(e.response?.data?.detail || e.message);
     }
   };
 
   const handleDelete = async (id) => {
-    await deleteExchange(id);
-    message.success('已删除');
-    load();
+    try {
+      await deleteExchange(id);
+      message.success('已删除');
+      await refetchAll();
+    } catch (e) {
+      message.error(e.response?.data?.detail || e.message);
+    }
   };
 
   const handleToggle = async (ex, active) => {
-    await updateExchange(ex.id, { is_active: active });
-    load();
+    try {
+      await updateExchange(ex.id, { is_active: active });
+      await refetchAll();
+    } catch (e) {
+      message.error(e.response?.data?.detail || e.message);
+    }
   };
 
   const columns = [
@@ -328,7 +352,14 @@ function ExchangeTab() {
       title={<Space><GlobalOutlined />交易所管理</Space>}
       extra={<Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>添加交易所</Button>}
     >
-      <Table dataSource={exchanges} columns={columns} rowKey="id" size="small" pagination={false} />
+      <Table
+        dataSource={exchanges}
+        columns={columns}
+        rowKey="id"
+        size="small"
+        pagination={false}
+        loading={exchangesQuery.isPending || exchangesQuery.isFetching}
+      />
 
       <Modal
         title={editingEx ? '编辑交易所' : '添加交易所'}
@@ -378,11 +409,14 @@ function ExchangeTab() {
 // ─── App Config Tab ───────────────────────────────────────────────────────────
 function AppConfigTab() {
   const [form] = Form.useForm();
+  const appConfigQuery = useAppConfigQuery();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    getAppConfig().then(({ data }) => form.setFieldsValue(data));
-  }, []);
+    if (appConfigQuery.data) {
+      form.setFieldsValue(appConfigQuery.data);
+    }
+  }, [appConfigQuery.data, form]);
 
   const handleSave = async (values) => {
     setLoading(true);
@@ -393,7 +427,11 @@ function AppConfigTab() {
   };
 
   return (
-    <Card title={<Space><SettingOutlined />应用配置</Space>} style={{ maxWidth: 500 }}>
+    <Card
+      title={<Space><SettingOutlined />应用配置</Space>}
+      style={{ maxWidth: 500 }}
+      loading={appConfigQuery.isPending}
+    >
       <Form form={form} layout="vertical" onFinish={handleSave}>
         <Form.Item name="auto_trade_enabled" label="自动交易（开启后将自动开仓最优套利机会）" valuePropName="checked">
           <Switch />
