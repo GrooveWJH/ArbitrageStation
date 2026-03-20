@@ -32,6 +32,7 @@ import {
   closeStrategy,
 } from '../../services/endpoints/tradingApi';
 import { usePositionsOverviewQuery } from '../../services/queries/positionsQueries';
+import { getApiErrorMessage } from '../../utils/error';
 import { fmtTime } from '../../utils/time';
 import { TermLabel } from '../../components/TermHint';
 
@@ -70,7 +71,7 @@ export default function Positions() {
       form.resetFields();
       await positionsOverviewQuery.refetch();
     } catch (e) {
-      message.error(`Open failed: ${e.response?.data?.detail || e.message}`);
+      message.error(`Open failed: ${getApiErrorMessage(e)}`);
     }
   };
 
@@ -80,7 +81,7 @@ export default function Positions() {
       message.success('Close request sent');
       await positionsOverviewQuery.refetch();
     } catch (e) {
-      message.error(`Close failed: ${e.message}`);
+      message.error(`Close failed: ${getApiErrorMessage(e)}`);
     }
   };
 
@@ -93,7 +94,7 @@ export default function Positions() {
       const payload = res?.data || null;
       setDetailDrawer((prev) => (prev && prev.id === record.id ? { ...prev, v2: payload } : prev));
     } catch (e) {
-      message.warning(`Load detail failed: ${e?.response?.data?.detail || e.message}`);
+      message.warning(`Load detail failed: ${getApiErrorMessage(e)}`);
     } finally {
       setDetailLoading(false);
     }

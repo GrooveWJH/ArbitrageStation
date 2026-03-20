@@ -32,6 +32,7 @@ import {
   updateSpotBasisAutoConfig,
 } from '../../services/endpoints/spotBasisApi';
 import { useSpotBasisDataJobQuery } from '../../services/queries/spotBasisBacktestQueries';
+import { getApiErrorMessage } from '../../utils/error';
 
 const { Title, Text } = Typography;
 
@@ -367,7 +368,7 @@ export default function SpotBasisBacktest() {
       return next;
     } catch (e) {
       if (!silent) {
-        message.error(e?.response?.data?.detail || e?.message || '读取回测覆盖检查失败');
+        message.error(getApiErrorMessage(e, '读取回测覆盖检查失败'));
       }
       return null;
     } finally {
@@ -398,7 +399,7 @@ export default function SpotBasisBacktest() {
       setImportJob(j);
       message.success(`${isFunding ? 'Funding历史' : '快照'}导入任务已启动 #${j.id}`);
     } catch (e) {
-      message.error(e?.response?.data?.detail || e?.message || `启动${isFunding ? 'Funding历史' : '快照'}导入失败`);
+      message.error(getApiErrorMessage(e, `启动${isFunding ? 'Funding历史' : '快照'}导入失败`));
     } finally {
       setImportLoading(false);
     }
@@ -424,7 +425,7 @@ export default function SpotBasisBacktest() {
       message.success(`已自动填充回测日期: ${start} ~ ${end}`);
       setReadiness(null);
     } catch (e) {
-      message.error(e?.response?.data?.detail || e?.message || '读取可用日期范围失败');
+      message.error(getApiErrorMessage(e, '读取可用日期范围失败'));
     } finally {
       setAvailableRangeLoading(false);
     }
@@ -449,7 +450,7 @@ export default function SpotBasisBacktest() {
       setJob(j);
       message.success(`回测任务已启动 #${j.id}`);
     } catch (e) {
-      message.error(e?.response?.data?.detail || e?.message || '启动回测失败');
+      message.error(getApiErrorMessage(e, '启动回测失败'));
     } finally {
       setLoading(false);
     }
@@ -501,7 +502,7 @@ export default function SpotBasisBacktest() {
       setSearchJob(j);
       message.success(`参数搜索任务已启动 #${j.id}`);
     } catch (e) {
-      message.error(e?.response?.data?.detail || e?.message || '启动参数搜索失败');
+      message.error(getApiErrorMessage(e, '启动参数搜索失败'));
     } finally {
       setSearchLoading(false);
     }
@@ -511,7 +512,7 @@ export default function SpotBasisBacktest() {
     if (!jobId) return;
     const res = await backtestJobQuery.refetch();
     if (res.error) {
-      message.error(res.error?.response?.data?.detail || res.error?.message || '读取任务失败');
+      message.error(getApiErrorMessage(res.error, '读取任务失败'));
     }
   };
 
@@ -519,7 +520,7 @@ export default function SpotBasisBacktest() {
     if (!searchJobId) return;
     const res = await searchJobQuery.refetch();
     if (res.error) {
-      message.error(res.error?.response?.data?.detail || res.error?.message || '读取搜索任务失败');
+      message.error(getApiErrorMessage(res.error, '读取搜索任务失败'));
     }
   };
 
@@ -576,7 +577,7 @@ export default function SpotBasisBacktest() {
       }
       return true;
     } catch (e) {
-      message.error(e?.response?.data?.detail || e?.message || '应用自动策略参数失败');
+      message.error(getApiErrorMessage(e, '应用自动策略参数失败'));
       return false;
     } finally {
       if (startAfterApply) {
@@ -601,7 +602,7 @@ export default function SpotBasisBacktest() {
       setAutoDiffStartAfterApply(!!startAfterApply);
       setAutoDiffVisible(true);
     } catch (e) {
-      message.error(e?.response?.data?.detail || e?.message || '读取当前自动策略配置失败');
+      message.error(getApiErrorMessage(e, '读取当前自动策略配置失败'));
     } finally {
       setAutoDiffLoading(false);
     }

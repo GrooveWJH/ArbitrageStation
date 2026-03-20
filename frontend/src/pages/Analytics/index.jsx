@@ -32,6 +32,7 @@ import {
   useAnalyticsPnlStrategiesQuery,
   useAnalyticsPnlSummaryQuery,
 } from '../../services/queries/analyticsQueries';
+import { getApiErrorMessage } from '../../utils/error';
 import { fmtTime } from '../../utils/time';
 import { TermLabel } from '../../components/TermHint';
 
@@ -170,7 +171,7 @@ export default function Analytics() {
       message.success(`funding ingest done (${cnt} exchanges)`);
       await refreshAnalytics();
     } catch (e) {
-      message.error(`ingest failed: ${e?.response?.data?.detail || e.message}`);
+      message.error(`ingest failed: ${getApiErrorMessage(e)}`);
     } finally {
       setSyncing(false);
     }
@@ -298,7 +299,7 @@ export default function Analytics() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      message.error(`export failed: ${e?.response?.data?.detail || e.message}`);
+      message.error(`export failed: ${getApiErrorMessage(e)}`);
     }
   };
 

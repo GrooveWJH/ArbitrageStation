@@ -46,6 +46,7 @@ import {
   useSpotBasisAutoOpportunitiesQuery,
   useSpotBasisDrawdownWatermarkQuery,
 } from '../../services/queries/spotBasisAutoQueries';
+import { getApiErrorMessage } from '../../utils/error';
 
 const PAD = { left: 58, right: 64, top: 10, bottom: 34 };
 const HISTORY_CACHE_TTL_MS = 60 * 1000;
@@ -92,15 +93,6 @@ const fmtIsoTime = (iso) => {
     return '--';
   }
 };
-
-const errText = (e, fallback) =>
-  e?.response?.data?.detail?.message ||
-  e?.response?.data?.detail ||
-  e?.response?.data?.message ||
-  e?.response?.data?.error ||
-  e?.response?.data ||
-  e?.message ||
-  fallback;
 
 const fmtCountdown = (secs) => {
   const s = Math.max(0, Math.floor(num(secs, 0)));
@@ -537,7 +529,7 @@ function History({ row }) {
         historyCache.set(cacheKey, { ts: Date.now(), series: merged });
       } catch (e) {
         if (reqRef.current !== reqId) return;
-        setErr(e?.response?.data?.detail?.message || e?.message || '加载失败');
+        setErr(getApiErrorMessage(e, '加载失败'));
       } finally {
         if (reqRef.current === reqId) setLoading(false);
       }
@@ -744,7 +736,7 @@ export default function SpotBasisAuto() {
           setRows(res.data.map(normalizeRow));
         }
         if (res.error && !silent) {
-          message.error(errText(res.error, '机会列表加载失败'));
+          message.error(getApiErrorMessage(res.error, '机会列表加载失败'));
         }
       } finally {
         if (!silent) setLoading(false);
@@ -760,7 +752,7 @@ export default function SpotBasisAuto() {
         setDecisionPreview(res.data);
       }
       if (res.error && !silent) {
-        message.error(errText(res.error, '决策预览加载失败'));
+        message.error(getApiErrorMessage(res.error, '决策预览加载失败'));
         setDecisionPreview(null);
       }
     },
@@ -768,7 +760,7 @@ export default function SpotBasisAuto() {
   );
 
   useEffect(() => {
-    loadCfg().catch((e) => message.error(errText(e, '自动策略配置加载失败')));
+    loadCfg().catch((e) => message.error(getApiErrorMessage(e, '自动策略配置加载失败')));
   }, [loadCfg]);
 
   useEffect(() => {
@@ -847,7 +839,7 @@ export default function SpotBasisAuto() {
       setCfg((p) => ({ ...(p || DEFAULT_CFG), is_enabled: enabled, dry_run: dryRun }));
       if (enabled) message.success('自动程序已启用');
     } catch (e) {
-      message.error(errText(e, '状态更新失败'));
+      message.error(getApiErrorMessage(e, '状态更新失败'));
       await loadCfg();
     } finally {
       setSavingStatus(false);
@@ -868,7 +860,7 @@ export default function SpotBasisAuto() {
       ]);
       message.success('周期执行完成');
     } catch (e) {
-      message.error(errText(e, '操作失败'));
+      message.error(getApiErrorMessage(e, '操作失败'));
     } finally {
       setCycleRunning(false);
     }
@@ -881,7 +873,7 @@ export default function SpotBasisAuto() {
       await Promise.all([drawdownWatermarkQuery.refetch(), cycleLastQuery.refetch()]);
       message.success(`高水位已重置到 ${fmtUsd(num(data?.peak_nav_usdt, 0), 2)}`);
     } catch (e) {
-      message.error(errText(e, '重置高水位失败'));
+      message.error(getApiErrorMessage(e, '重置高水位失败'));
     } finally {
       setDrawdownWatermarkResetting(false);
     }
@@ -892,7 +884,7 @@ export default function SpotBasisAuto() {
     try {
       const res = await exchangeFundsQuery.refetch();
       if (res.error) {
-        message.error(errText(res.error, '交易所资金加载失败'));
+        message.error(getApiErrorMessage(res.error, '交易所资金加载失败'));
       }
     } finally {
       setExchangeFundsRefreshing(false);
@@ -902,7 +894,7 @@ export default function SpotBasisAuto() {
   const refreshCycleLogs = async () => {
     const res = await cycleLogsQuery.refetch();
     if (res.error) {
-      message.error(errText(res.error, '日志加载失败'));
+      message.error(getApiErrorMessage(res.error, '日志加载失败'));
     }
   };
 

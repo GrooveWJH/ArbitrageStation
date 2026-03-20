@@ -22,6 +22,7 @@ import {
   useSettingsExchangesQuery,
   useSupportedExchangesQuery,
 } from '../../services/queries/settingsQueries';
+import { getApiErrorMessage } from '../../utils/error';
 
 const RULE_TYPE_OPTIONS = [
   { label: '亏损百分比触发 (%)', value: 'loss_pct' },
@@ -63,7 +64,7 @@ function RiskRulesTab() {
       setModalOpen(false);
       await riskRulesQuery.refetch();
     } catch (e) {
-      message.error('操作失败: ' + e.message);
+      message.error(`操作失败: ${getApiErrorMessage(e)}`);
     }
   };
 
@@ -73,7 +74,7 @@ function RiskRulesTab() {
       message.success('规则已删除');
       await riskRulesQuery.refetch();
     } catch (e) {
-      message.error('删除失败: ' + e.message);
+      message.error(`删除失败: ${getApiErrorMessage(e)}`);
     }
   };
 
@@ -82,7 +83,7 @@ function RiskRulesTab() {
       await updateRiskRule(rule.id, { is_enabled: enabled });
       await riskRulesQuery.refetch();
     } catch (e) {
-      message.error('更新失败: ' + e.message);
+      message.error(`更新失败: ${getApiErrorMessage(e)}`);
     }
   };
 
@@ -219,7 +220,7 @@ function EmailTab() {
       const { data } = await testEmail();
       message.success(data.message);
     } catch (e) {
-      message.error('测试失败: ' + e.message);
+      message.error(`测试失败: ${getApiErrorMessage(e)}`);
     } finally { setTesting(false); }
   };
 
@@ -306,7 +307,7 @@ function ExchangeTab() {
       setModalOpen(false);
       await refetchAll();
     } catch (e) {
-      message.error(e.response?.data?.detail || e.message);
+      message.error(getApiErrorMessage(e));
     }
   };
 
@@ -316,7 +317,7 @@ function ExchangeTab() {
       message.success('已删除');
       await refetchAll();
     } catch (e) {
-      message.error(e.response?.data?.detail || e.message);
+      message.error(getApiErrorMessage(e));
     }
   };
 
@@ -325,7 +326,7 @@ function ExchangeTab() {
       await updateExchange(ex.id, { is_active: active });
       await refetchAll();
     } catch (e) {
-      message.error(e.response?.data?.detail || e.message);
+      message.error(getApiErrorMessage(e));
     }
   };
 
