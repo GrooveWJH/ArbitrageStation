@@ -17,6 +17,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "test": "react-scripts test --watchAll=false",
     "lint": "biome lint src",
     "format": "biome format --write src"
   },

@@ -1,0 +1,2 @@
+# Relative paths from frontend/src/
+# format: path|owner=<team>|sunset_batch=<Bx>
