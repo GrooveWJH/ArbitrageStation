@@ -1,0 +1,28 @@
+.kinetic-app .ant-btn {
+  border-radius: 2px;
+  border-color: rgba(43, 70, 128, 0.92);
+  color: var(--kinetic-text);
+  background: var(--kinetic-surface-high);
+}
+
+.kinetic-app .ant-btn:not(.ant-btn-primary):hover {
+  color: var(--kinetic-primary) !important;
+  border-color: var(--kinetic-primary) !important;
+  background: var(--kinetic-surface-high) !important;
+}
+
+.kinetic-app .ant-btn-primary {
+  background: linear-gradient(120deg, var(--kinetic-primary-dim), var(--kinetic-primary));
+  border-color: transparent;
+  color: #06243b;
+  font-weight: 700;
+}
+
+.kinetic-app .ant-btn-primary:hover {
+  color: #03192b !important;
+  background: linear-gradient(120deg, #6fcfff, #a2dcff) !important;
+}
+
+.kinetic-app .ant-btn-primary:disabled {
+  opacity: 0.6;
+}

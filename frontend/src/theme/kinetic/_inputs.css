@@ -1,0 +1,162 @@
+/* ── Input / InputNumber / Picker: underline-only style ─────────────── */
+.kinetic-app .ant-input,
+.kinetic-app .ant-input-number-input,
+.kinetic-app .ant-input-password input {
+  background: transparent !important;
+  color: var(--kinetic-text) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+
+.kinetic-app .ant-input-affix-wrapper,
+.kinetic-app .ant-input-number,
+.kinetic-app .ant-input-password,
+.kinetic-app .ant-picker {
+  background: rgba(0, 34, 90, 0.35) !important;
+  color: var(--kinetic-text) !important;
+  border: 0 !important;
+  border-bottom: 1.5px solid rgba(91, 116, 177, 0.6) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: border-color 180ms ease !important;
+}
+
+.kinetic-app .ant-input-affix-wrapper:hover,
+.kinetic-app .ant-input-number:hover,
+.kinetic-app .ant-input-password:hover,
+.kinetic-app .ant-picker:hover {
+  border-bottom-color: var(--kinetic-primary) !important;
+}
+
+.kinetic-app .ant-input-affix-wrapper-focused,
+.kinetic-app .ant-input-number-focused,
+.kinetic-app .ant-picker-focused {
+  border-bottom-color: var(--kinetic-primary) !important;
+  box-shadow: 0 2px 0 0 rgba(123, 208, 255, 0.25) !important;
+}
+
+/* bare <input> not wrapped in affix (e.g. plain ant-input) */
+.kinetic-app input.ant-input {
+  background: rgba(0, 34, 90, 0.35) !important;
+  border: 0 !important;
+  border-bottom: 1.5px solid rgba(91, 116, 177, 0.6) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: border-color 180ms ease !important;
+}
+
+.kinetic-app input.ant-input:focus {
+  border-bottom-color: var(--kinetic-primary) !important;
+  box-shadow: 0 2px 0 0 rgba(123, 208, 255, 0.25) !important;
+}
+
+/* Fix double borders: if an input is inside an affix wrapper or group, let the wrapper style the border */
+.kinetic-app .ant-input-affix-wrapper input.ant-input,
+.kinetic-app .ant-input-group input.ant-input {
+  border-bottom: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.kinetic-app .ant-input::placeholder,
+.kinetic-app .ant-select-selection-placeholder,
+.kinetic-app .ant-input-number-input::placeholder,
+.kinetic-app .ant-picker input::placeholder {
+  color: rgba(145, 170, 235, 0.75) !important;
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* ── InputNumber Step Handlers (Up/Down Arrows) ───────────── */
+.kinetic-app .ant-input-number-handler-wrap {
+  background: transparent !important;
+  border-left: 1px solid rgba(91, 116, 177, 0.35) !important;
+}
+
+.kinetic-app .ant-input-number-handler {
+  border-color: rgba(91, 116, 177, 0.35) !important;
+}
+
+.kinetic-app .ant-input-number-handler-up-inner,
+.kinetic-app .ant-input-number-handler-down-inner {
+  color: var(--kinetic-text-variant) !important;
+}
+
+.kinetic-app .ant-input-number-handler:hover .ant-input-number-handler-up-inner,
+.kinetic-app .ant-input-number-handler:hover .ant-input-number-handler-down-inner {
+  color: var(--kinetic-primary) !important;
+}
+
+/* ── InputNumber with addonBefore (labeled filter fields) ───────────── */
+.kinetic-app .ant-input-number-group-wrapper {
+  border-bottom: 1.5px solid rgba(91, 116, 177, 0.55);
+  transition: border-color 180ms ease;
+}
+
+.kinetic-app .ant-input-number-group-wrapper:hover,
+.kinetic-app .ant-input-number-group-wrapper:focus-within {
+  border-bottom-color: var(--kinetic-primary);
+}
+
+.kinetic-app .ant-input-number-group-wrapper:focus-within {
+  box-shadow: 0 2px 0 0 rgba(123, 208, 255, 0.22);
+}
+
+.kinetic-app .ant-input-number-group-addon {
+  background: rgba(0, 22, 58, 0.6) !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(91, 116, 177, 0.35) !important;
+  border-radius: 0 !important;
+  color: var(--kinetic-text-variant) !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  padding: 0 8px !important;
+  white-space: nowrap;
+}
+
+.kinetic-app .ant-input-number-group > .ant-input-number {
+  background: rgba(0, 34, 90, 0.35) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.kinetic-app .ant-input-group-wrapper {
+  border-bottom: 1.5px solid rgba(91, 116, 177, 0.55);
+  transition: border-color 180ms ease;
+}
+
+.kinetic-app .ant-input-group-wrapper:hover,
+.kinetic-app .ant-input-group-wrapper:focus-within {
+  border-bottom-color: var(--kinetic-primary);
+}
+
+.kinetic-app .ant-input-group-addon {
+  background: rgba(0, 22, 58, 0.6) !important;
+  border: 0 !important;
+  border-right: 1px solid rgba(91, 116, 177, 0.35) !important;
+  border-radius: 0 !important;
+  color: var(--kinetic-text-variant) !important;
+  font-family: 'Space Grotesk', sans-serif !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  padding: 0 8px !important;
+}
+
+.kinetic-app .ant-input-group > .ant-input {
+  background: rgba(0, 34, 90, 0.35) !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.kinetic-app .ant-input-number-group-addon:last-child,
+.kinetic-app .ant-input-group-addon:last-child {
+  border-right: 0 !important;
+  border-left: 1px solid rgba(91, 116, 177, 0.35) !important;
+}

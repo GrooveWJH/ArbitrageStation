@@ -1,0 +1,160 @@
+/* Global text color enforcers for Ant components */
+.kinetic-app .ant-card-head-title,
+.kinetic-app .ant-card-extra,
+.kinetic-app .ant-statistic-title,
+.kinetic-app .ant-statistic-content,
+.kinetic-app .ant-form-item-label > label,
+.kinetic-app .ant-table,
+.kinetic-app .ant-table-thead > tr > th,
+.kinetic-app .ant-table-tbody > tr > td,
+.kinetic-app .ant-typography,
+.kinetic-app .ant-descriptions,
+.kinetic-app .ant-tabs,
+.kinetic-app .ant-alert-message,
+.kinetic-app .ant-alert-description,
+.kinetic-app .ant-tag,
+.kinetic-app .ant-badge-status-text {
+  color: var(--kinetic-text);
+}
+
+.kinetic-badge {
+  background: var(--kinetic-surface-high);
+  border: 1px solid rgba(43, 70, 128, 0.7);
+  border-radius: 2px;
+  color: var(--kinetic-primary);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-family: 'Space Grotesk', sans-serif;
+  padding: 2px 8px;
+}
+
+.kinetic-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+}
+
+.kinetic-status-dot.live {
+  background: var(--kinetic-tertiary-dim);
+  box-shadow: 0 0 0 6px rgba(91, 240, 131, 0.12);
+}
+
+.kinetic-status-dot.stable {
+  background: var(--kinetic-primary);
+}
+
+.kinetic-status-dot.warning {
+  background: #e0bf6d;
+}
+
+.kinetic-status-dot.danger {
+  background: var(--kinetic-error);
+}
+
+.kinetic-status-dot.idle {
+  background: var(--kinetic-secondary);
+}
+
+.kinetic-status-text {
+  color: var(--kinetic-text-variant);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.kinetic-app .ant-switch {
+  background: #2b4680;
+}
+
+.kinetic-app .ant-switch.ant-switch-checked {
+  background: #379bd0;
+}
+
+.kinetic-app .ant-tabs-tab {
+  color: var(--kinetic-text-variant);
+}
+
+.kinetic-app .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--kinetic-primary);
+}
+
+.kinetic-app .ant-tabs-ink-bar {
+  background: var(--kinetic-primary);
+}
+
+/* ── Tag: flat data chip (no box look) ─────────────────────────────── */
+.kinetic-app .ant-tag {
+  background: rgba(43, 70, 128, 0.18);
+  border: 0;
+  border-left: 2px solid rgba(91, 116, 177, 0.7);
+  border-radius: 0 2px 2px 0;
+  color: var(--kinetic-text-variant);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  padding: 1px 7px 1px 6px;
+  line-height: 20px;
+}
+
+.kinetic-app .ant-tag-blue {
+  background: rgba(71, 196, 255, 0.1);
+  border-left-color: var(--kinetic-primary);
+  color: var(--kinetic-primary);
+}
+
+.kinetic-app .ant-tag-green {
+  background: rgba(91, 240, 131, 0.08);
+  border-left-color: var(--kinetic-tertiary-dim);
+  color: var(--kinetic-tertiary-dim);
+}
+
+.kinetic-app .ant-tag-red {
+  background: rgba(238, 125, 119, 0.1);
+  border-left-color: var(--kinetic-error);
+  color: var(--kinetic-error);
+}
+
+.kinetic-app .ant-tag-orange {
+  background: rgba(224, 191, 109, 0.1);
+  border-left-color: #e0bf6d;
+  color: #e0bf6d;
+}
+
+.kinetic-app .ant-tag-default {
+  background: rgba(43, 70, 128, 0.15);
+  border-left-color: rgba(91, 116, 177, 0.45);
+  color: var(--kinetic-text-variant);
+}
+
+.kinetic-dashboard .ant-progress-bg {
+  background: linear-gradient(90deg, var(--kinetic-primary-dim), var(--kinetic-primary)) !important;
+}
+
+.kinetic-spread .ant-statistic-content,
+.kinetic-positions .ant-statistic-content {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.kinetic-mini-note {
+  color: var(--kinetic-text-variant);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.kinetic-pill {
+  background: rgba(123, 208, 255, 0.12);
+  border: 1px solid rgba(43, 70, 128, 0.85);
+  padding: 2px 7px;
+  border-radius: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--kinetic-primary);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: 'Space Grotesk', sans-serif;
+}

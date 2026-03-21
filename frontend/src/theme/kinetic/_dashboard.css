@@ -1,0 +1,206 @@
+.kinetic-dashboard-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kinetic-dashboard-top-row,
+.kinetic-dashboard-main-row {
+  margin: 0 !important;
+}
+
+.kinetic-overview-metric.ant-card {
+  border: 0;
+  background: var(--kinetic-surface-low);
+}
+
+.kinetic-overview-metric .ant-card-body {
+  padding: 18px 18px 16px;
+}
+
+.kinetic-overview-metric .metric-label {
+  font-family: 'Inter', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 10px;
+  color: var(--kinetic-text-variant);
+  margin-bottom: 8px;
+}
+
+.kinetic-overview-metric .metric-value {
+  font-family: 'Manrope', sans-serif;
+  color: #fff;
+  font-size: 34px;
+  line-height: 1.05;
+  font-weight: 800;
+}
+
+.kinetic-overview-metric.warning .metric-value {
+  color: #e0bf6d;
+}
+
+.kinetic-overview-metric.healthy .metric-value {
+  color: var(--kinetic-tertiary-dim);
+}
+
+.kinetic-overview-metric .metric-foot {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--kinetic-text-variant);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.kinetic-overview-metric .metric-foot .metric-up {
+  color: var(--kinetic-tertiary-dim);
+}
+
+.kinetic-pnl-quality-panel.ant-card .ant-card-body {
+  padding: 12px 14px;
+}
+
+.kinetic-pnl-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.kinetic-pnl-panel-head h3 {
+  margin: 0;
+  color: #fff;
+  font-family: 'Manrope', sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.kinetic-pnl-bars {
+  height: 110px;
+  display: flex;
+  align-items: end;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.kinetic-pnl-bar {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: end;
+  background: rgba(43, 70, 128, 0.22);
+}
+
+.kinetic-pnl-bar span {
+  width: 100%;
+  background: rgba(71, 196, 255, 0.35);
+}
+
+.kinetic-pnl-bar.is-highlight span {
+  background: linear-gradient(180deg, var(--kinetic-primary), var(--kinetic-primary-container));
+  box-shadow: 0 0 14px rgba(123, 208, 255, 0.35);
+}
+
+.kinetic-pnl-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.kinetic-pnl-stats .stat-label {
+  color: var(--kinetic-text-variant);
+  font-size: 10px;
+  font-family: 'Space Grotesk', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.kinetic-pnl-stats .stat-value {
+  color: #fff;
+  margin-top: 2px;
+  font-size: 12px;
+}
+
+.kinetic-dashboard-right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.kinetic-exec-logs-card .ant-card-body {
+  max-height: 300px;
+  overflow: auto;
+}
+
+.kinetic-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kinetic-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.kinetic-log-dot {
+  width: 7px;
+  height: 7px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: var(--kinetic-tertiary-dim);
+}
+
+.kinetic-log-dot.danger {
+  background: var(--kinetic-error);
+}
+
+.kinetic-log-content {
+  min-width: 0;
+}
+
+.kinetic-log-title {
+  color: #fff;
+  font-family: 'Space Grotesk', sans-serif;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
+.kinetic-log-sub {
+  color: var(--kinetic-text-variant);
+  font-size: 10px;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kinetic-network-pulse .pulse-label {
+  color: var(--kinetic-primary);
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.kinetic-network-pulse h4 {
+  margin: 8px 0 0;
+  color: #fff;
+  font-family: 'Manrope', sans-serif;
+}
+
+.kinetic-network-pulse .pulse-meta {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: var(--kinetic-text-variant);
+  font-size: 10px;
+  text-transform: uppercase;
+}

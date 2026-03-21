@@ -1,0 +1,39 @@
+/* ── Select: clearly interactive control ───────────────────────────── */
+.kinetic-app .ant-select-selector {
+  background: var(--kinetic-surface-higher) !important;
+  border-color: rgba(91, 116, 177, 0.9) !important;
+  border-radius: 2px !important;
+}
+
+.kinetic-app .ant-select-arrow,
+.kinetic-app .ant-select-arrow .anticon,
+.kinetic-app .ant-select-arrow svg {
+  color: rgba(145, 170, 235, 0.9) !important;
+  fill: rgba(145, 170, 235, 0.9) !important;
+}
+
+.kinetic-app .ant-select-focused .ant-select-selector {
+  border-color: var(--kinetic-primary) !important;
+  box-shadow: 0 0 0 2px rgba(123, 208, 255, 0.2) !important;
+}
+
+.kinetic-app .ant-select-dropdown {
+  background: var(--kinetic-surface-high);
+  border: 1px solid rgba(91, 116, 177, 0.7);
+  border-radius: 2px;
+}
+
+.kinetic-app .ant-select-item {
+  color: var(--kinetic-text-variant) !important;
+}
+
+.kinetic-app .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+  background-color: rgba(91, 116, 177, 0.2) !important;
+  color: var(--kinetic-text) !important;
+}
+
+.kinetic-app .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+  background-color: rgba(123, 208, 255, 0.15) !important;
+  color: var(--kinetic-text) !important;
+  font-weight: bold !important;
+}

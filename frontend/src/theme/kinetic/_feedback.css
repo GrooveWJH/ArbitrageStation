@@ -1,0 +1,61 @@
+/* ── Feedback Components: Modal, Drawer, Alert, Empty ───────────── */
+.kinetic-app .ant-modal-content,
+.kinetic-app .ant-drawer-content {
+  background: var(--kinetic-surface-low);
+}
+
+.kinetic-app .ant-modal-header,
+.kinetic-app .ant-drawer-header {
+  background: var(--kinetic-surface-high);
+  border-bottom-color: rgba(43, 70, 128, 0.8);
+}
+
+.kinetic-app .ant-empty-description {
+  color: var(--kinetic-text-variant);
+}
+
+.kinetic-app .ant-alert {
+  border: 1px solid rgba(43, 70, 128, 0.78);
+  background: rgba(6, 18, 45, 0.85);
+}
+
+.kinetic-app .ant-alert .ant-alert-icon,
+.kinetic-app .ant-alert .ant-alert-close-icon {
+  color: var(--kinetic-text-variant);
+}
+
+.kinetic-app .ant-alert-info {
+  border-color: rgba(71, 196, 255, 0.45);
+  background: rgba(71, 196, 255, 0.16);
+}
+
+.kinetic-app .ant-alert-info .ant-alert-icon {
+  color: var(--kinetic-primary);
+}
+
+.kinetic-app .ant-alert-success {
+  border-color: rgba(91, 240, 131, 0.42);
+  background: rgba(91, 240, 131, 0.12);
+}
+
+.kinetic-app .ant-alert-success .ant-alert-icon {
+  color: var(--kinetic-tertiary-dim);
+}
+
+.kinetic-app .ant-alert-warning {
+  border-color: rgba(224, 191, 109, 0.45);
+  background: rgba(224, 191, 109, 0.14);
+}
+
+.kinetic-app .ant-alert-warning .ant-alert-icon {
+  color: #e0bf6d;
+}
+
+.kinetic-app .ant-alert-error {
+  border-color: rgba(238, 125, 119, 0.48);
+  background: rgba(238, 125, 119, 0.12);
+}
+
+.kinetic-app .ant-alert-error .ant-alert-icon {
+  color: var(--kinetic-error);
+}

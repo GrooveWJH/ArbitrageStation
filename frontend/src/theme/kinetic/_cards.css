@@ -1,0 +1,27 @@
+.kinetic-app .ant-card {
+  background: var(--kinetic-surface-low);
+  border: 1px solid rgba(43, 70, 128, 0.72);
+  box-shadow: var(--kinetic-shadow);
+}
+
+.kinetic-app .ant-card-head {
+  background: var(--kinetic-surface-high);
+  border-bottom: 1px solid rgba(43, 70, 128, 0.78);
+}
+
+.kinetic-dashboard .ant-card[style*='linear-gradient'] {
+  background: var(--kinetic-surface-high) !important;
+  border-color: rgba(43, 70, 128, 0.8) !important;
+}
+
+.kinetic-settings .ant-card,
+.kinetic-settings-card.ant-card {
+  box-shadow: none;
+}
+
+.kinetic-settings-side .ant-card-head-title {
+  font-family: 'Manrope', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 12px;
+}

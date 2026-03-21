@@ -1,0 +1,44 @@
+.kinetic-app .ant-table-wrapper .ant-table,
+.kinetic-app .ant-table-wrapper .ant-table-container table > thead > tr:first-child > * {
+  background: transparent;
+}
+
+.kinetic-app .ant-table-thead > tr > th {
+  background: var(--kinetic-surface-high) !important;
+  border-bottom: 1px solid rgba(43, 70, 128, 0.85);
+}
+
+.kinetic-app .ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(43, 70, 128, 0.45);
+}
+
+.kinetic-app .ant-table-tbody > tr.ant-table-row:hover > td {
+  background: rgba(123, 208, 255, 0.08) !important;
+}
+
+/* Specific Positions Table Overrides */
+.kinetic-positions .kinetic-positions-table .ant-table-thead > tr > th,
+.kinetic-positions .kinetic-positions-table .ant-table-thead .ant-table-cell,
+.kinetic-positions .kinetic-positions-table .ant-table-thead .ant-table-column-title {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.kinetic-positions .kinetic-positions-table .ant-table-thead > tr > th {
+  padding-inline: 14px !important;
+}
+
+.kinetic-positions .kinetic-positions-table .ant-table-thead .ant-table-column-title {
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+}
+
+.kinetic-positions .kinetic-positions-table .ant-table-thead .ant-table-column-sorters {
+  gap: 6px;
+}
+
+.kinetic-positions .kinetic-positions-table .ant-table-cell-fix-right,
+.kinetic-positions .kinetic-positions-table .ant-table-cell-fix-right-first {
+  box-shadow: -10px 0 14px rgba(2, 11, 31, 0.52);
+}
