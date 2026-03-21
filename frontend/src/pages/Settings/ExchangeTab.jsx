@@ -14,10 +14,13 @@ import {
   message,
 } from 'antd';
 import {
+  DisconnectOutlined,
   DeleteOutlined,
   EditOutlined,
   GlobalOutlined,
+  LinkOutlined,
   PlusOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import {
   addExchange,
@@ -94,6 +97,19 @@ export default function ExchangeTab() {
     }
   };
 
+  const formatExchangeId = (ex) => {
+    const raw = String(ex.id ?? ex.name ?? '').toUpperCase();
+    if (!raw) return 'UNKNOWN';
+    if (raw.length <= 10) return raw;
+    return `${raw.slice(0, 4)}...${raw.slice(-3)}`;
+  };
+
+  const getLatencyLabel = (ex) => {
+    const latency = ex.latency_ms ?? ex.last_latency_ms ?? ex.ws_latency_ms ?? ex.ping_ms;
+    if (latency == null || Number.isNaN(Number(latency))) return '---';
+    return `${Number(latency).toFixed(0)}ms`;
+  };
+
   const columns = [
     { title: 'ID', dataIndex: 'id', width: 60 },
     {
@@ -145,6 +161,7 @@ export default function ExchangeTab() {
 
   return (
     <Card
+      className="kinetic-settings-card"
       title={(
         <Space>
           <GlobalOutlined />
@@ -157,6 +174,54 @@ export default function ExchangeTab() {
         </Button>
       )}
     >
+      <section className="kinetic-exchange-connectivity">
+        <div className="connectivity-head">
+          <h4>
+            <GlobalOutlined />
+            交易所 API 连通性
+          </h4>
+        </div>
+
+        <div className="connectivity-list">
+          {exchanges.map((ex) => {
+            const connected = Boolean(ex.is_active && ex.has_api_key);
+            const shortName = (ex.display_name || ex.name || 'EX').slice(0, 3).toUpperCase();
+            return (
+              <div className={`connectivity-row ${connected ? 'is-connected' : 'is-disconnected'}`} key={`connectivity-${ex.id}`}>
+                <div className="connectivity-main">
+                  <div className="exchange-mark">{shortName}</div>
+                  <div>
+                    <div className="exchange-title">{(ex.display_name || ex.name || 'Unnamed').toUpperCase()}</div>
+                    <div className="exchange-meta">
+                      <span>ID: {formatExchangeId(ex)}</span>
+                      <span className="dot" />
+                      <span className={`status ${connected ? 'ok' : 'error'}`}>
+                        <span className="pulse" />
+                        {connected ? '已连接' : '未连接'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div className="connectivity-actions">
+                  <div className="latency">
+                    <div>延迟</div>
+                    <strong>{getLatencyLabel(ex)}</strong>
+                  </div>
+                  <Button size="small" icon={<SettingOutlined />} onClick={() => openEdit(ex)} />
+                  <Button
+                    size="small"
+                    type={connected ? 'default' : 'primary'}
+                    danger={connected}
+                    icon={connected ? <DisconnectOutlined /> : <LinkOutlined />}
+                    onClick={() => { void handleToggle(ex, !connected); }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       <Table
         dataSource={exchanges}
         columns={columns}
@@ -167,6 +232,7 @@ export default function ExchangeTab() {
       />
 
       <Modal
+        className="kinetic-settings-modal"
         title={editingEx ? '编辑交易所' : '添加交易所'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}

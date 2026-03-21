@@ -92,10 +92,10 @@ function DualAxisChart({ series }) {
     <div ref={host} style={{ width: '100%' }}>
       <svg width={width} height={300}>
         {leftTicks.map((t) => (
-          <line key={`grid-${t}`} x1={PAD.left} x2={PAD.left + innerW} y1={toYLeft(t)} y2={toYLeft(t)} stroke="#e2e8f0" strokeDasharray="3 3" />
+          <line key={`grid-${t}`} x1={PAD.left} x2={PAD.left + innerW} y1={toYLeft(t)} y2={toYLeft(t)} stroke="#2f467a" strokeDasharray="3 3" />
         ))}
-        <line x1={PAD.left} x2={PAD.left} y1={PAD.top} y2={PAD.top + innerH} stroke="#cbd5e1" />
-        <line x1={PAD.left + innerW} x2={PAD.left + innerW} y1={PAD.top} y2={PAD.top + innerH} stroke="#cbd5e1" />
+        <line x1={PAD.left} x2={PAD.left} y1={PAD.top} y2={PAD.top + innerH} stroke="#47639a" />
+        <line x1={PAD.left + innerW} x2={PAD.left + innerW} y1={PAD.top} y2={PAD.top + innerH} stroke="#47639a" />
         <path d={basisPath} fill="none" stroke="#f59e0b" strokeWidth="2" />
         <path d={fundingPath} fill="none" stroke="#06b6d4" strokeWidth="2" />
         {series.length === 1 && Number.isFinite(basis[0]) && <circle cx={toX(0)} cy={toYLeft(basis[0])} r="3" fill="#f59e0b" />}
@@ -112,7 +112,7 @@ function DualAxisChart({ series }) {
           </text>
         ))}
         {xLabels.map((idx) => (
-          <text key={`tx-${idx}`} x={toX(idx)} y={PAD.top + innerH + 20} textAnchor="middle" fill="#64748b" fontSize={11}>
+          <text key={`tx-${idx}`} x={toX(idx)} y={PAD.top + innerH + 20} textAnchor="middle" fill="#8ea4d4" fontSize={11}>
             {fmtTime(num(series[idx]?.time, Number.NaN))}
           </text>
         ))}
@@ -185,7 +185,7 @@ export default function HistoryPanel({ row }) {
   }, [load, timeframe]);
 
   return (
-    <div style={{ padding: 8, background: '#f8fafc', borderRadius: 8 }}>
+    <div style={{ padding: 8, background: 'rgba(6, 18, 45, 0.78)', borderRadius: 8, border: '1px solid rgba(43, 70, 128, 0.7)' }}>
       <Space style={{ marginBottom: 8 }} wrap>
         <Tag color="blue">{row.symbol}</Tag>
         <Tag>{row.perp_exchange_name} 合约</Tag>
@@ -211,11 +211,11 @@ export default function HistoryPanel({ row }) {
       <Space size={14} style={{ marginBottom: 6 }}>
         <Space size={6}>
           <span style={{ display: 'inline-block', width: 12, height: 3, borderRadius: 2, background: '#f59e0b' }} />
-          <span style={{ color: '#475569', fontSize: 12 }}>基差(%) 左轴</span>
+          <span style={{ color: '#9fb5e8', fontSize: 12 }}>基差(%) 左轴</span>
         </Space>
         <Space size={6}>
           <span style={{ display: 'inline-block', width: 12, height: 3, borderRadius: 2, background: '#06b6d4' }} />
-          <span style={{ color: '#475569', fontSize: 12 }}>费率(%) 右轴</span>
+          <span style={{ color: '#9fb5e8', fontSize: 12 }}>费率(%) 右轴</span>
         </Space>
       </Space>
 

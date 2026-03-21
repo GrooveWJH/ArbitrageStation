@@ -32,6 +32,7 @@ import {
 import { useRiskRulesQuery } from '../../services/queries/settingsQueries';
 import { getApiErrorMessage } from '../../utils/error';
 import { ACTION_OPTIONS, RULE_TYPE_OPTIONS } from './constants';
+import RiskLimitsOverview from './RiskLimitsOverview';
 
 export default function RiskRulesTab() {
   const queryClient = useQueryClient();
@@ -171,6 +172,7 @@ export default function RiskRulesTab() {
 
   return (
     <Card
+      className="kinetic-settings-card"
       title={(
         <Space>
           <SafetyOutlined />
@@ -183,6 +185,8 @@ export default function RiskRulesTab() {
         </Button>
       )}
     >
+      <RiskLimitsOverview rules={rules} />
+
       <Alert
         message="风控规则说明"
         description="每条规则独立运行。「亏损百分比」规则中，设置80表示亏损≥80%时触发；「立即平仓」会同时平掉该策略的所有仓位（含对冲仓）。"
@@ -207,6 +211,7 @@ export default function RiskRulesTab() {
       />
 
       <Modal
+        className="kinetic-settings-modal"
         title={editingRule ? '编辑风控规则' : '新增风控规则'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}

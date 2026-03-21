@@ -176,20 +176,20 @@ export default function SpreadMonitor({ wsData }) {
     : 0;
 
   return (
-    <div>
+    <div className="kinetic-page kinetic-spread">
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}>
-          <Card size="small">
+          <Card className="kinetic-panel-card" size="small">
             <Statistic title="监控币对数" value={symbolCount} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card className="kinetic-panel-card" size="small">
             <Statistic title="交易所数据条目" value={pairCount} />
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card className="kinetic-panel-card" size="small">
             <Statistic
               title="最大价差"
               value={maxSpread}
@@ -200,7 +200,7 @@ export default function SpreadMonitor({ wsData }) {
           </Card>
         </Col>
         <Col span={6}>
-          <Card size="small">
+          <Card className="kinetic-panel-card" size="small">
             <div style={{ color: '#888', fontSize: 12 }}>
               <div>价差 = (该所价格 − 最低价) / 最低价</div>
               <div>高频交易所 = 组内结算最频繁的所</div>
@@ -210,7 +210,7 @@ export default function SpreadMonitor({ wsData }) {
         </Col>
       </Row>
 
-      <Card size="small" style={{ marginBottom: 16 }} bodyStyle={{ padding: '8px 16px' }}>
+      <Card className="kinetic-panel-card" size="small" style={{ marginBottom: 16 }} bodyStyle={{ padding: '8px 16px' }}>
         <Row gutter={16} align="middle">
           <Col>
             <Input
@@ -276,7 +276,7 @@ export default function SpreadMonitor({ wsData }) {
         </Row>
       </Card>
 
-      <Card size="small" bodyStyle={{ padding: 0 }}>
+      <Card className="kinetic-panel-card" size="small" bodyStyle={{ padding: 0 }}>
         <Table
           rowKey="_key"
           dataSource={rows}

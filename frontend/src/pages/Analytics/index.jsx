@@ -84,10 +84,10 @@ export default function Analytics() {
     try {
       const res = await runPnlV2FundingIngest({ lookback_hours: 72 });
       const cnt = res.data?.count || 0;
-      message.success(`funding ingest done (${cnt} exchanges)`);
+      message.success(`资金费补采完成（${cnt} 个交易所）`);
       await refreshAnalytics();
     } catch (e) {
-      message.error(`ingest failed: ${getApiErrorMessage(e)}`);
+      message.error(`补采失败: ${getApiErrorMessage(e)}`);
     } finally {
       setSyncing(false);
     }
@@ -139,7 +139,7 @@ export default function Analytics() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
-      message.error(`export failed: ${getApiErrorMessage(e)}`);
+      message.error(`导出失败: ${getApiErrorMessage(e)}`);
     }
   };
 
@@ -147,7 +147,7 @@ export default function Analytics() {
     <div>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <span style={{ fontSize: 18, fontWeight: 700 }}>P&amp;L Analytics (v2)</span>
+          <span style={{ fontSize: 18, fontWeight: 700 }}>收益分析 (v2)</span>
         </Col>
         <Col>
           <Space>
@@ -156,8 +156,8 @@ export default function Analytics() {
               onChange={setScope}
               style={{ width: 130 }}
               options={[
-                { label: 'Active', value: 'active' },
-                { label: 'All', value: 'all' },
+                { label: '运行中', value: 'active' },
+                { label: '全部', value: 'all' },
               ]}
             />
             <Select
@@ -165,10 +165,10 @@ export default function Analytics() {
               onChange={setDays}
               style={{ width: 130 }}
               options={[
-                { label: 'Last 7d', value: 7 },
-                { label: 'Last 30d', value: 30 },
-                { label: 'Last 90d', value: 90 },
-                { label: 'All', value: 0 },
+                { label: '最近 7 天', value: 7 },
+                { label: '最近 30 天', value: 30 },
+                { label: '最近 90 天', value: 90 },
+                { label: '全部', value: 0 },
               ]}
             />
             <Button
@@ -178,13 +178,13 @@ export default function Analytics() {
               }}
               loading={refreshing}
             >
-              Refresh
+              刷新
             </Button>
             <Button icon={<SyncOutlined />} onClick={onSyncFunding} loading={syncing}>
-              Sync Funding
+              同步资金费
             </Button>
             <Button icon={<DownloadOutlined />} onClick={onExportCsv}>
-              Export CSV
+              导出 CSV
             </Button>
           </Space>
         </Col>
@@ -225,7 +225,7 @@ export default function Analytics() {
         size="small"
         title={(
           <Space>
-            Strategy Rows
+            策略明细
             <Tag color="blue">{totalCount}</Tag>
           </Space>
         )}

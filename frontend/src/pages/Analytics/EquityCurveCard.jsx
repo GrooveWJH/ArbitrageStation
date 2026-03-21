@@ -27,9 +27,9 @@ export default function EquityCurveCard({ days }) {
   const chartData = useMemo(() => {
     if (!eq?.points?.length) return [];
     if (view === 'equity') {
-      return eq.points.map((p) => ({ time: p.time, value: p.total, type: 'equity' }));
+      return eq.points.map((p) => ({ time: p.time, value: p.total, type: '权益' }));
     }
-    return eq.points.map((p) => ({ time: p.time, value: p.profit, type: 'profit' }));
+    return eq.points.map((p) => ({ time: p.time, value: p.profit, type: '收益' }));
   }, [eq, view]);
 
   const color = view === 'equity' ? '#1677ff' : '#52c41a';
@@ -40,6 +40,11 @@ export default function EquityCurveCard({ days }) {
     animation: false,
     style: { stroke: color, lineWidth: 2 },
     point: chartData.length <= 30 ? { size: 3 } : false,
+    legend: {
+      color: {
+        itemLabelFill: '#c8d8f0',
+      },
+    },
   };
 
   return (
@@ -49,7 +54,7 @@ export default function EquityCurveCard({ days }) {
       title={(
         <Space>
           <LineChartOutlined style={{ color: '#1677ff' }} />
-          <span>Equity Curve</span>
+          <span>权益曲线</span>
         </Space>
       )}
       extra={(
@@ -60,8 +65,8 @@ export default function EquityCurveCard({ days }) {
             style={{ width: 120 }}
             onChange={setView}
             options={[
-              { label: 'Equity', value: 'equity' },
-              { label: 'Profit', value: 'profit' },
+              { label: '权益', value: 'equity' },
+              { label: '收益', value: 'profit' },
             ]}
           />
           <Button
@@ -76,7 +81,7 @@ export default function EquityCurveCard({ days }) {
       )}
     >
       {!isInitialLoading && (!eq?.points || eq.points.length === 0) ? (
-        <Empty description="No equity snapshots yet" />
+        <Empty description={<span style={{ color: '#8ba3c7' }}>暂无权益快照</span>} />
       ) : (
         <div style={{ height: 260 }}>
           <Line {...config} />

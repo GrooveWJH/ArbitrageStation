@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'antd';
+import DevOverlay from '../../components/DevOverlay';
+import { Alert, Card, Col, Row } from 'antd';
 import {
   useDashboardAccountOverviewQuery,
   useDashboardOpportunitiesQuery,
@@ -174,9 +175,10 @@ export default function Dashboard({ wsData }) {
   const spotOppColumns = useMemo(() => buildSpotOppColumns(), []);
   const logColumns = useMemo(() => buildLogColumns(), []);
   const emergencyLogs = logs.filter((l) => l.action === 'emergency_close');
+  const latestLogTs = logs[0]?.created_at || logs[0]?.ts || null;
 
   return (
-    <div style={{ padding: 0 }}>
+    <div className="kinetic-page kinetic-dashboard">
       {emergencyLogs.length > 0 && (
         <Alert
           message={`有 ${emergencyLogs.length} 笔风控平仓记录`}
@@ -188,36 +190,67 @@ export default function Dashboard({ wsData }) {
         />
       )}
 
-      <TopMetricsRow pnlSummary={pnlSummary} />
-      <PnlQualityBar pnlSummary={pnlSummary} />
+      <div className="kinetic-dashboard-shell">
+        <Row gutter={[16, 16]} className="kinetic-dashboard-top-row">
+          <Col xs={24} xl={16}>
+            <TopMetricsRow
+              pnlSummary={pnlSummary}
+              accountSummary={accountSummary}
+              emergencyCount={emergencyLogs.length}
+            />
+          </Col>
+          <Col xs={24} xl={8}>
+            <PnlQualityBar pnlSummary={pnlSummary} />
+          </Col>
+        </Row>
 
-      <AccountSection
-        accountLoading={accountLoading}
-        accountData={accountData}
-        accountSummary={accountSummary}
-        accountTrendData={accountTrendData}
-        accountTrendConfig={accountTrendConfig}
-        accountTrendStart={accountTrendStart}
-        accountTrendEnd={accountTrendEnd}
-        accountTrendDelta={accountTrendDelta}
-        onRefresh={handleRefreshAccount}
-        formatUsdt={formatUsdt}
-        calcExchangeTotalUsdt={calcExchangeTotalUsdt}
-        toNumber={toNumber}
-      />
+        <Row gutter={[16, 16]} className="kinetic-dashboard-main-row">
+          <Col xs={24} xl={16}>
+            <OpportunitiesSection
+              opportunities={opportunities}
+              spotOpportunities={spotOpportunities}
+              minVolume={minVolume}
+              minSpotVolume={minSpotVolume}
+              onMinVolumeChange={handleMinVolumeChange}
+              onMinSpotVolumeChange={handleMinSpotVolumeChange}
+              oppColumns={oppColumns}
+              spotOppColumns={spotOppColumns}
+              compact
+            />
+          </Col>
+          <Col xs={24} xl={8}>
+            <div className="kinetic-dashboard-right-stack">
+              <RecentTradesCard logs={logs} columns={logColumns} compact />
+              <DevOverlay>
+              <Card className="kinetic-panel-card kinetic-network-pulse">
+                <div className="pulse-label">全局网络状态</div>
+                <h4>全部节点运行正常</h4>
+                <div className="pulse-meta">
+                  <span>正常: {Number(accountSummary?.healthyExchangeCount || 0)}</span>
+                  <span>告警: {Number(accountSummary?.warningExchangeCount || 0)}</span>
+                  <span>最近日志: {latestLogTs ? new Date(latestLogTs).toLocaleTimeString([], { hour12: false }) : '--'}</span>
+                </div>
+              </Card>
+              </DevOverlay>
+            </div>
+          </Col>
+        </Row>
 
-      <OpportunitiesSection
-        opportunities={opportunities}
-        spotOpportunities={spotOpportunities}
-        minVolume={minVolume}
-        minSpotVolume={minSpotVolume}
-        onMinVolumeChange={handleMinVolumeChange}
-        onMinSpotVolumeChange={handleMinSpotVolumeChange}
-        oppColumns={oppColumns}
-        spotOppColumns={spotOppColumns}
-      />
-
-      <RecentTradesCard logs={logs} columns={logColumns} />
+        <AccountSection
+          accountLoading={accountLoading}
+          accountData={accountData}
+          accountSummary={accountSummary}
+          accountTrendData={accountTrendData}
+          accountTrendConfig={accountTrendConfig}
+          accountTrendStart={accountTrendStart}
+          accountTrendEnd={accountTrendEnd}
+          accountTrendDelta={accountTrendDelta}
+          onRefresh={handleRefreshAccount}
+          formatUsdt={formatUsdt}
+          calcExchangeTotalUsdt={calcExchangeTotalUsdt}
+          toNumber={toNumber}
+        />
+      </div>
       <style>{`.risk-row { background: #fff1f0 !important; } .row-no-spot td { color: #bbb !important; }`}</style>
     </div>
   );

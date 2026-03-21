@@ -43,6 +43,7 @@ export default function AppConfigTab() {
 
   return (
     <Card
+      className="kinetic-settings-card"
       title={(
         <Space>
           <SettingOutlined />

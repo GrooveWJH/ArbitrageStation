@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import { queryClient } from './services/queryClient';
+import './theme/kinetic.css';
 
 // Suppress chrome-extension errors from being shown in the React error overlay
 const _origOnError = window.onerror;

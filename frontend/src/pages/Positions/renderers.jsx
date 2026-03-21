@@ -3,10 +3,10 @@ import { Tag } from 'antd';
 
 export function statusTag(status) {
   const map = {
-    active: ['green', 'Active'],
-    closed: ['default', 'Closed'],
-    closing: ['orange', 'Closing'],
-    error: ['red', 'Error'],
+    active: ['green', '运行中'],
+    closed: ['default', '已结束'],
+    closing: ['orange', '平仓中'],
+    error: ['red', '异常'],
   };
   const [color, label] = map[status] || ['default', status];
   return <Tag color={color}>{label}</Tag>;
@@ -21,7 +21,15 @@ export function qualityTag(quality) {
     stale: 'volcano',
     missing: 'red',
   };
-  return <Tag color={colorMap[q] || 'default'}>{q}</Tag>;
+  const labelMap = {
+    ok: '正常',
+    na: '无数据',
+    partial: '部分',
+    stale: '过期',
+    missing: '缺失',
+    unknown: '未知',
+  };
+  return <Tag color={colorMap[q] || 'default'}>{labelMap[q] || q}</Tag>;
 }
 
 export function pnlRender(v, precision = 2) {

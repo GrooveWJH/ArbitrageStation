@@ -12,7 +12,15 @@ const qualityColor = {
 
 export function QualityTag({ value }) {
   const q = value || 'unknown';
-  return <Tag color={qualityColor[q] || 'default'}>{q}</Tag>;
+  const labelMap = {
+    ok: '正常',
+    na: '无数据',
+    partial: '部分',
+    stale: '过期',
+    missing: '缺失',
+    unknown: '未知',
+  };
+  return <Tag color={qualityColor[q] || 'default'}>{labelMap[q] || q}</Tag>;
 }
 
 export function PnlText({ value, precision = 4, suffix = 'U' }) {
@@ -32,10 +40,10 @@ export function PnlText({ value, precision = 4, suffix = 'U' }) {
 
 export function StatusTag({ value }) {
   const map = {
-    active: ['blue', 'active'],
-    closed: ['green', 'closed'],
-    closing: ['orange', 'closing'],
-    error: ['red', 'error'],
+    active: ['blue', '运行中'],
+    closed: ['green', '已结束'],
+    closing: ['orange', '平仓中'],
+    error: ['red', '异常'],
   };
   const one = map[value] || ['default', String(value || '-')];
   return <Tag color={one[0]}>{one[1]}</Tag>;

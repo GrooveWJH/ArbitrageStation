@@ -34,7 +34,7 @@ export default function OpportunitySection({
   columns,
 }) {
   return (
-    <Col span={16}>
+    <div className="opportunity-section">
       <Card style={{ marginBottom: 12 }}>
         <Space wrap>
           <Input
@@ -92,6 +92,6 @@ export default function OpportunitySection({
           }}
         />
       </Card>
-    </Col>
+    </div>
   );
 }

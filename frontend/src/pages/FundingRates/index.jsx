@@ -126,7 +126,9 @@ export default function FundingRates({ wsData }) {
   ];
 
   return (
-    <Card
+    <div className="kinetic-page kinetic-funding">
+      <Card
+        className="kinetic-panel-card"
       title={
         <Space>
           <FilterOutlined />
@@ -207,6 +209,7 @@ export default function FundingRates({ wsData }) {
         rowClassName={r => Math.abs(r.rate_pct) > 0.1 ? 'high-rate-row' : ''}
       />
       <style>{`.high-rate-row { background: #fff7e6 !important; }`}</style>
-    </Card>
+      </Card>
+    </div>
   );
 }

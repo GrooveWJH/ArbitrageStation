@@ -13,6 +13,10 @@ import SpreadArb from './pages/SpreadArb';
 import SpotBasisAuto from './pages/SpotBasisAuto';
 import SpotBasisBacktest from './pages/SpotBasisBacktest';
 import { connectWS, disconnectWS } from './services/websocket';
+import {
+  KINETIC_ANTD_THEME,
+  buildPageChromeConfig,
+} from './theme/kineticTheme';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('dashboard');
@@ -42,10 +46,16 @@ export default function App() {
   };
 
   return (
-    <ConfigProvider locale={zhCN} theme={{ token: { colorPrimary: '#1677ff' } }}>
-      <AppLayout currentPage={currentPage} onNavigate={setCurrentPage}>
-        {renderPage()}
-      </AppLayout>
+    <ConfigProvider locale={zhCN} theme={KINETIC_ANTD_THEME}>
+      <div className="kinetic-app">
+        <AppLayout
+          currentPage={currentPage}
+          onNavigate={setCurrentPage}
+          pageChrome={buildPageChromeConfig(currentPage)}
+        >
+          {renderPage()}
+        </AppLayout>
+      </div>
     </ConfigProvider>
   );
 }

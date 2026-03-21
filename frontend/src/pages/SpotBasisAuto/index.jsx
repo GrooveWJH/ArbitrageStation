@@ -46,6 +46,12 @@ export default function SpotBasisAuto() {
   const [savingStatus, setSavingStatus] = useState(false);
   const [decisionPreview, setDecisionPreview] = useState(null);
   const [cycleLogs, setCycleLogs] = useState([]);
+  const [cycleLogsClearTs, setCycleLogsClearTs] = useState(0);
+
+  const clearCycleLogs = useCallback(() => {
+    setCycleLogsClearTs(Date.now());
+    setCycleLogs([]);
+  }, []);
   const [cycleRunning, setCycleRunning] = useState(false);
   const [drawdownWatermarkResetting, setDrawdownWatermarkResetting] = useState(false);
   const [exchangeFundsRefreshing, setExchangeFundsRefreshing] = useState(false);
@@ -134,8 +140,15 @@ export default function SpotBasisAuto() {
   }, [loadCfg]);
 
   useEffect(() => {
-    if (cycleLogsQuery.data) setCycleLogs(cycleLogsQuery.data);
-  }, [cycleLogsQuery.data]);
+    if (cycleLogsQuery.data) {
+      const filtered = cycleLogsQuery.data.filter((log) => {
+        const ts = num(log.ts, 0);
+        const ms = ts < 1e11 ? ts * 1000 : ts;
+        return ms >= cycleLogsClearTs;
+      });
+      setCycleLogs(filtered);
+    }
+  }, [cycleLogsQuery.data, cycleLogsClearTs]);
 
   useEffect(() => {
     if (opportunitiesQuery.data) setRows(opportunitiesQuery.data.map(normalizeRow));
@@ -258,49 +271,47 @@ export default function SpotBasisAuto() {
   const cycleLogColumns = useMemo(() => createCycleLogColumns(), []);
 
   return (
-    <div style={{ padding: 12, background: '#f5f7fb', minHeight: '100%' }}>
-      <Row gutter={[12, 12]}>
-        <OpportunitySection
-          filters={filters}
-          setFilters={setFilters}
-          exchangeOptions={exchangeOptions}
-          rows={rows}
-          rowsLoading={rowsLoading}
-          refreshRows={refreshRows}
-          stats={stats}
-          expanded={expanded}
-          setExpanded={setExpanded}
-          columns={columns}
-        />
+    <div className="kinetic-spot-basis-auto-root">
+      <OpportunitySection
+        filters={filters}
+        setFilters={setFilters}
+        exchangeOptions={exchangeOptions}
+        rows={rows}
+        rowsLoading={rowsLoading}
+        refreshRows={refreshRows}
+        stats={stats}
+        expanded={expanded}
+        setExpanded={setExpanded}
+        columns={columns}
+      />
 
-        <ControlSidebar
-          cfg={cfg}
-          savingStatus={savingStatus}
-          setStatus={setStatus}
-          setCfg={setCfg}
-          drawdownWatermarkLoading={drawdownWatermarkLoading}
-          drawdownWatermark={drawdownWatermark}
-          drawdownWatermarkResetting={drawdownWatermarkResetting}
-          resetDrawdownWatermark={resetDrawdownWatermark}
-          setCfgField={setCfgField}
-          saveCfg={saveCfg}
-          saving={saving}
-          runCycleOnce={runCycleOnce}
-          cycleRunning={cycleRunning}
-          exchangeFundsLoading={exchangeFundsLoading}
-          refreshExchangeFunds={refreshExchangeFunds}
-          fundsSummary={fundsSummary}
-          exchangeFunds={exchangeFunds}
-          exchangeFundsColumns={exchangeFundsColumns}
-          cycleLast={cycleLast}
-          refreshCycleLogs={refreshCycleLogs}
-          setCycleLogs={setCycleLogs}
-          cycleLogs={cycleLogs}
-          cycleLogColumns={cycleLogColumns}
-          decisionLoading={decisionLoading}
-          decisionPreview={decisionPreview}
-        />
-      </Row>
+      <ControlSidebar
+        cfg={cfg}
+        savingStatus={savingStatus}
+        setStatus={setStatus}
+        setCfg={setCfg}
+        drawdownWatermarkLoading={drawdownWatermarkLoading}
+        drawdownWatermark={drawdownWatermark}
+        drawdownWatermarkResetting={drawdownWatermarkResetting}
+        resetDrawdownWatermark={resetDrawdownWatermark}
+        setCfgField={setCfgField}
+        saveCfg={saveCfg}
+        saving={saving}
+        runCycleOnce={runCycleOnce}
+        cycleRunning={cycleRunning}
+        exchangeFundsLoading={exchangeFundsLoading}
+        refreshExchangeFunds={refreshExchangeFunds}
+        fundsSummary={fundsSummary}
+        exchangeFunds={exchangeFunds}
+        exchangeFundsColumns={exchangeFundsColumns}
+        cycleLast={cycleLast}
+        refreshCycleLogs={refreshCycleLogs}
+        clearCycleLogs={clearCycleLogs}
+        cycleLogs={cycleLogs}
+        cycleLogColumns={cycleLogColumns}
+        decisionLoading={decisionLoading}
+        decisionPreview={decisionPreview}
+      />
     </div>
   );
 }

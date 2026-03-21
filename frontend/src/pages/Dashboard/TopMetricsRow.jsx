@@ -1,56 +1,62 @@
 import React from 'react';
-import { ArrowDownOutlined, ArrowUpOutlined, ThunderboltOutlined } from '@ant-design/icons';
-import { Card, Col, Row, Statistic } from 'antd';
-import { TermLabel } from '../../components/TermHint';
+import { Card, Col, Row } from 'antd';
+import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 
-export default function TopMetricsRow({ pnlSummary }) {
-  const displayPnl = pnlSummary?.total_pnl_usdt;
+function fmtCurrency(v) {
+  if (v == null || Number.isNaN(Number(v))) return '--';
+  return `$${Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
+}
+
+export default function TopMetricsRow({ pnlSummary, accountSummary, emergencyCount = 0 }) {
+  const totalEquity = accountSummary?.totalUsdt ?? 0;
+  const openExposure = accountSummary?.knownFuturesUsdt ?? 0;
+  const riskWarnings = Number(accountSummary?.warningExchangeCount || 0) + emergencyCount;
+  const riskLabel = riskWarnings > 0 ? '关注' : '正常';
+  const riskTone = riskWarnings > 0 ? 'warning' : 'healthy';
+  const pnlDelta = pnlSummary?.total_pnl_usdt;
   const pnlPct = pnlSummary?.total_pnl_pct;
-  const pnlColor = displayPnl == null ? '#999' : displayPnl >= 0 ? '#3f8600' : '#cf1322';
-  const pnlIcon = displayPnl == null ? null : displayPnl >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />;
 
   return (
-    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-      <Col span={4}>
-        <Card>
-          <Statistic title="活跃策略" value={pnlSummary.active_strategies ?? 0} prefix={<ThunderboltOutlined />} />
+    <Row gutter={[16, 16]} className="kinetic-dashboard-metrics">
+      <Col xs={24} md={12} xl={8}>
+        <Card className="kinetic-overview-metric">
+          <div className="metric-label">总权益 (USDT)</div>
+          <div className="metric-value">{fmtCurrency(totalEquity)}</div>
+          <div className="metric-foot">
+            <span className="metric-up">{Number(accountSummary?.exchangeCount || 0)} 个交易所</span>
+            <span>实时资金汇总</span>
+          </div>
         </Card>
       </Col>
-      <Col span={4}>
-        <Card>
-          <Statistic title="持仓数量" value={pnlSummary.open_positions ?? 0} />
+      <Col xs={24} md={12} xl={8}>
+        <Card className="kinetic-overview-metric">
+          <div className="metric-label">在仓敞口</div>
+          <div className="metric-value">{fmtCurrency(openExposure)}</div>
+          <div className="metric-foot">
+            <span className="metric-up">{Number(pnlSummary?.open_positions || 0)} 条在仓腿</span>
+            <span>
+              {pnlDelta == null ? '--' : (
+                <>
+                  {Number(pnlDelta) >= 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                  {' '}
+                  {Number(pnlDelta) >= 0 ? '+' : ''}
+                  {Number(pnlDelta).toFixed(2)}U
+                  {' / '}
+                  {pnlPct == null ? '--' : `${Number(pnlPct).toFixed(2)}%`}
+                </>
+              )}
+            </span>
+          </div>
         </Card>
       </Col>
-      <Col span={5}>
-        <Card>
-          <Statistic
-            title={<TermLabel label="策略总盈亏 (v2, USDT)" term="total_pnl" />}
-            value={displayPnl == null ? '--' : Number(displayPnl)}
-            precision={displayPnl == null ? undefined : 2}
-            valueStyle={{ color: pnlColor }}
-            prefix={pnlIcon}
-          />
-        </Card>
-      </Col>
-      <Col span={4}>
-        <Card>
-          <Statistic
-            title={<TermLabel label="收益率 (v2)" term="total_pnl_pct" />}
-            value={pnlPct == null ? '--' : Number(pnlPct)}
-            precision={pnlPct == null ? undefined : 2}
-            suffix="%"
-            valueStyle={{ color: pnlPct == null ? '#999' : Number(pnlPct) >= 0 ? '#3f8600' : '#cf1322' }}
-          />
-        </Card>
-      </Col>
-      <Col span={4}>
-        <Card>
-          <Statistic title="今日成交" value={pnlSummary.today_trades ?? 0} suffix="笔" />
-        </Card>
-      </Col>
-      <Col span={3}>
-        <Card>
-          <Statistic title="在线交易所" value={pnlSummary.active_exchanges ?? 0} />
+      <Col xs={24} md={24} xl={8}>
+        <Card className={`kinetic-overview-metric ${riskTone === 'warning' ? 'warning' : 'healthy'}`}>
+          <div className="metric-label">系统状态 / 风险</div>
+          <div className="metric-value">{riskLabel}</div>
+          <div className="metric-foot">
+            <span>{riskWarnings > 0 ? `${riskWarnings} 条风险信号` : '无关键告警'}</span>
+            <span>{Number(pnlSummary?.active_strategies || 0)} 个策略运行中</span>
+          </div>
         </Card>
       </Col>
     </Row>

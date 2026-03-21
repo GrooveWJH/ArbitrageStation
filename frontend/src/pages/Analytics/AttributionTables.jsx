@@ -16,15 +16,15 @@ function AttributionTable({ rows, prefix, emptyText }) {
       rowKey={(r) => `${prefix}-${r.strategy_type}`}
       dataSource={rows}
       columns={[
-        { title: 'Type', dataIndex: 'strategy_type', width: 120 },
-        { title: 'Strategies', dataIndex: 'strategy_count', width: 90 },
+        { title: '类型', dataIndex: 'strategy_type', width: 120 },
+        { title: '策略数', dataIndex: 'strategy_count', width: 90 },
         {
-          title: 'PnL',
+          title: '盈亏',
           dataIndex: 'pnl_usdt',
           render: (v) => <PnlText value={v} />,
         },
         {
-          title: 'Ratio',
+          title: '占比',
           dataIndex: 'pnl_ratio',
           render: (v) => (v == null ? '--' : `${(Number(v) * 100).toFixed(2)}%`),
         },
@@ -38,9 +38,9 @@ function AttributionTable({ rows, prefix, emptyText }) {
             rowKey={(s) => `${prefix}-${r.strategy_type}-${s.strategy_id}`}
             dataSource={r.strategies || []}
             columns={[
-              { title: 'Strategy ID', dataIndex: 'strategy_id', width: 110 },
-              { title: 'Name', dataIndex: 'name', ellipsis: true },
-              { title: 'PnL', dataIndex: 'pnl_usdt', width: 150, render: (v) => <PnlText value={v} /> },
+              { title: '策略 ID', dataIndex: 'strategy_id', width: 110 },
+              { title: '名称', dataIndex: 'name', ellipsis: true },
+              { title: '盈亏', dataIndex: 'pnl_usdt', width: 150, render: (v) => <PnlText value={v} /> },
             ]}
           />
         ),
@@ -57,13 +57,13 @@ export default function AttributionTables({
   return (
     <Row gutter={12} style={{ marginBottom: 16 }}>
       <Col span={12}>
-        <Card size="small" title={<TermLabel label="Profit Attribution" term="attribution" />}>
-          <AttributionTable rows={profitRows} prefix="p" emptyText="No profit attribution" />
+        <Card size="small" title={<TermLabel label="收益归因" term="attribution" />}>
+          <AttributionTable rows={profitRows} prefix="p" emptyText="暂无收益归因数据" />
         </Card>
       </Col>
       <Col span={12}>
-        <Card size="small" title={<TermLabel label="Loss Attribution" term="attribution" />}>
-          <AttributionTable rows={lossRows} prefix="l" emptyText="No loss attribution" />
+        <Card size="small" title={<TermLabel label="亏损归因" term="attribution" />}>
+          <AttributionTable rows={lossRows} prefix="l" emptyText="暂无亏损归因数据" />
         </Card>
       </Col>
     </Row>

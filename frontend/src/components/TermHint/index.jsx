@@ -4,11 +4,11 @@ import { QuestionCircleOutlined } from '@ant-design/icons';
 
 export const TERM_HINTS = {
   spread_pnl: '价差收益（已实现+未实现），按 USDT 统一折算。',
-  funding_pnl: '资金费收益，来自资金费流水归因。missing 时不显示 0。',
-  fee_usdt: '交易手续费成本，按成交额与费率计算，Total 中会减去。',
-  total_pnl: '统一口径：Total = Spread + Funding - Fee。',
-  total_pnl_pct: '收益率 = Total PnL / capital_base（策略保证金基数）。',
-  funding_coverage: '资金费覆盖率 = captured / expected。用于判断资金费数据完整性。',
+  funding_pnl: '资金费收益，来自资金费流水归因。缺失时不显示 0。',
+  fee_usdt: '交易手续费成本，按成交额与费率计算，会从总盈亏中扣除。',
+  total_pnl: '统一口径：总盈亏 = 价差 + 资金费 - 手续费。',
+  total_pnl_pct: '收益率 = 总盈亏 / capital_base（策略保证金基数）。',
+  funding_coverage: '资金费覆盖率 = 已捕获 / 应捕获。用于判断资金费数据完整性。',
   funding_quality: '资金费质量：ok / partial / stale / missing / na（无应计事件）。',
   quality: '数据质量等级：ok / partial / stale / missing。',
   quality_reason: '质量原因代码，如 funding_api_no_data、cursor_gap_detected。',

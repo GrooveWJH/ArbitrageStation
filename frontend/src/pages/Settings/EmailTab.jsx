@@ -66,6 +66,7 @@ export default function EmailTab() {
 
   return (
     <Card
+      className="kinetic-settings-card"
       title={(
         <Space>
           <MailOutlined />

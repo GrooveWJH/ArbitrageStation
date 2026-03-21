@@ -11,10 +11,47 @@ export default function OpportunitiesSection({
   onMinSpotVolumeChange,
   oppColumns,
   spotOppColumns,
+  compact = false,
 }) {
+  if (compact) {
+    return (
+      <Card
+        className="kinetic-panel-card kinetic-opportunities-card"
+        title={<Space><ThunderboltOutlined style={{ color: '#7bd0ff' }} /><span>实时套利机会</span></Space>}
+        style={{ marginBottom: 0 }}
+        extra={(
+          <Space>
+            <span className="kinetic-mini-note">最小24h量</span>
+            <InputNumber
+              size="small"
+              min={0}
+              step={1000000}
+              style={{ width: 130 }}
+              value={minVolume || null}
+              placeholder="不限"
+              formatter={(v) => (v ? `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '')}
+              onChange={onMinVolumeChange}
+            />
+            <Tag color="green">{opportunities.length} 条</Tag>
+          </Space>
+        )}
+      >
+        <Table
+          dataSource={opportunities}
+          columns={oppColumns}
+          rowKey="symbol"
+          size="small"
+          pagination={{ pageSize: 8, showSizeChanger: false }}
+          scroll={{ x: 900 }}
+        />
+      </Card>
+    );
+  }
+
   return (
     <>
       <Card
+        className="kinetic-panel-card"
         title={<Space><ThunderboltOutlined style={{ color: '#1677ff' }} /><span>跨所费率套利机会 (实时)</span></Space>}
         style={{ marginBottom: 24 }}
         extra={(
@@ -45,6 +82,7 @@ export default function OpportunitiesSection({
       </Card>
 
       <Card
+        className="kinetic-panel-card"
         title={<Space><ThunderboltOutlined style={{ color: '#13c2c2' }} /><span>现货对冲机会 (实时)</span></Space>}
         style={{ marginBottom: 24 }}
         extra={(
