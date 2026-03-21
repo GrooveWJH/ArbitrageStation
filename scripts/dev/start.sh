@@ -3,6 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PNPM_VERSION="${PNPM_VERSION:-10.11.0}"
+FRONTEND_GENERATE_SOURCEMAP="${FRONTEND_GENERATE_SOURCEMAP:-false}"
 BACKEND_PID=""
 FRONTEND_PID=""
 
@@ -81,11 +82,13 @@ BACKEND_PID="$!"
 log "starting frontend http://127.0.0.1:3000"
 (
   cd "${ROOT_DIR}"
+  export GENERATE_SOURCEMAP="${FRONTEND_GENERATE_SOURCEMAP}"
   exec pnpm --dir frontend start
 ) &
 FRONTEND_PID="$!"
 
 log "backend_pid=${BACKEND_PID} frontend_pid=${FRONTEND_PID}"
+log "frontend GENERATE_SOURCEMAP=${FRONTEND_GENERATE_SOURCEMAP}"
 log "press Ctrl+C to stop both services"
 
 monitor_processes
