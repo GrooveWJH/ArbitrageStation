@@ -1,0 +1,1363 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metrics Snapshot Viewer</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <style>
+    :root {
+      --bg: #050b1a;
+      --bg-alt: #09142b;
+      --panel: #0c1b36;
+      --panel-alt: #112347;
+      --border: #21457d;
+      --text: #dce8ff;
+      --text-dim: #8ea6d8;
+      --accent: #58c6ff;
+      --ok: #40d47e;
+      --warn: #ffb347;
+      --err: #ff667a;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+      --radius: 14px;
+      --font-main: "Inter", "PingFang SC", "Microsoft YaHei", sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font-main);
+      background: radial-gradient(1200px 700px at 85% -10%, #153162 0%, transparent 60%), var(--bg);
+      color: var(--text);
+    }
+
+    .app {
+      max-width: 1680px;
+      margin: 0 auto;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .title-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 26px;
+      letter-spacing: 0.4px;
+    }
+
+    .subtitle {
+      margin-top: 6px;
+      color: var(--text-dim);
+      font-size: 14px;
+    }
+
+    .pill {
+      font-size: 12px;
+      color: var(--accent);
+      border: 1px solid color-mix(in oklab, var(--accent) 55%, transparent);
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: rgba(89, 198, 255, 0.1);
+      white-space: nowrap;
+    }
+
+    .panel {
+      background: linear-gradient(180deg, color-mix(in oklab, var(--panel-alt) 80%, #fff 0%), var(--panel));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+
+    .upload-wrap {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .dropzone {
+      border: 1px dashed color-mix(in oklab, var(--accent) 65%, #1a2f56 35%);
+      border-radius: 12px;
+      padding: 20px;
+      background: rgba(56, 133, 219, 0.07);
+      transition: all 0.18s ease;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-height: 120px;
+      gap: 10px;
+    }
+
+    .dropzone.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 198, 255, 0.2);
+      background: rgba(88, 198, 255, 0.12);
+    }
+
+    .btn {
+      border: 1px solid #3c6cb4;
+      background: #12346a;
+      color: #d8ebff;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      filter: brightness(1.12);
+    }
+
+    .btn.primary {
+      border-color: #69cbff;
+      background: linear-gradient(90deg, #2d8bcf, #46b8f0);
+      color: #041424;
+      font-weight: 700;
+    }
+
+    .btn.ghost {
+      background: transparent;
+      border-color: #3968ab;
+      color: var(--text-dim);
+    }
+
+    .error-box {
+      border: 1px solid color-mix(in oklab, var(--err) 75%, #5b1f2f 25%);
+      background: rgba(255, 102, 122, 0.12);
+      color: #ffd9de;
+      border-radius: 10px;
+      padding: 10px;
+      font-size: 13px;
+      display: none;
+      white-space: pre-wrap;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .meta-item {
+      background: #0a1a35;
+      border: 1px solid #1f3f71;
+      border-radius: 10px;
+      padding: 10px;
+      min-height: 70px;
+    }
+
+    .meta-item .label {
+      color: var(--text-dim);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    .meta-item .value {
+      margin-top: 6px;
+      font-size: 16px;
+      font-weight: 700;
+      word-break: break-word;
+    }
+
+    .filter-row {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(120px, 1fr)) auto;
+      gap: 10px;
+      align-items: end;
+    }
+
+    .field label {
+      display: block;
+      color: var(--text-dim);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    select,
+    input[type="text"] {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #335f9f;
+      background: #081b3a;
+      color: var(--text);
+      padding: 8px 10px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    select:focus,
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 198, 255, 0.2);
+    }
+
+    .checkbox-wrap {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      border: 1px solid #335f9f;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: #081b3a;
+      min-height: 38px;
+      color: #c7d8f8;
+      font-size: 13px;
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(8, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .kpi {
+      background: #081a37;
+      border: 1px solid #1e3e70;
+      border-radius: 10px;
+      padding: 10px;
+      min-height: 82px;
+    }
+
+    .kpi .k {
+      color: var(--text-dim);
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+
+    .kpi .v {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+    }
+
+    .health-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .health-bar {
+      display: flex;
+      border-radius: 999px;
+      overflow: hidden;
+      height: 14px;
+      border: 1px solid #1f3d6e;
+      background: #0c1d39;
+    }
+
+    .health-seg {
+      height: 100%;
+    }
+
+    .health-labels {
+      display: flex;
+      gap: 12px;
+      color: var(--text-dim);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      margin-right: 5px;
+    }
+
+    .weak-summary {
+      margin-top: 10px;
+      border: 1px solid #1f3d6f;
+      border-radius: 10px;
+      padding: 9px 10px;
+      color: #d9e8ff;
+      background: rgba(15, 36, 70, 0.75);
+      font-size: 13px;
+    }
+
+    .section-title {
+      margin: 0 0 10px;
+      font-size: 18px;
+      letter-spacing: 0.2px;
+    }
+
+    .charts-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .chart-card {
+      background: #071830;
+      border: 1px solid #1f3c6c;
+      border-radius: 10px;
+      padding: 8px;
+    }
+
+    .chart-title {
+      font-size: 12px;
+      color: #b8cff4;
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .chart {
+      width: 100%;
+      height: 290px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: 1fr 220px auto;
+      gap: 10px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    .table-wrap {
+      border: 1px solid #1f3e6f;
+      border-radius: 10px;
+      overflow: auto;
+      max-height: 360px;
+      background: #081a36;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      padding: 8px 9px;
+      border-bottom: 1px solid #16345e;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #0d244a;
+      color: #d2e5ff;
+      font-size: 12px;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    th.sorting::after {
+      content: attr(data-sort-arrow);
+      margin-left: 6px;
+      color: var(--accent);
+      font-size: 11px;
+    }
+
+    tr:hover {
+      background: rgba(91, 162, 255, 0.1);
+    }
+
+    tr.selected {
+      background: rgba(88, 198, 255, 0.2);
+    }
+
+    .status-badge {
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 11px;
+      border: 1px solid;
+    }
+
+    .status-ok {
+      color: #9dffd0;
+      border-color: rgba(64, 212, 126, 0.7);
+      background: rgba(64, 212, 126, 0.12);
+    }
+
+    .status-warn {
+      color: #ffe2b3;
+      border-color: rgba(255, 179, 71, 0.7);
+      background: rgba(255, 179, 71, 0.12);
+    }
+
+    .status-err {
+      color: #ffd6dc;
+      border-color: rgba(255, 102, 122, 0.7);
+      background: rgba(255, 102, 122, 0.12);
+    }
+
+    .split-2 {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 10px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      max-height: 216px;
+      overflow: auto;
+      padding: 6px;
+      border: 1px solid #1f3e6f;
+      border-radius: 10px;
+      background: #081a35;
+    }
+
+    .chip {
+      border: 1px solid #3d6eb4;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      color: #cae1ff;
+      background: #0d264e;
+      font-family: var(--font-mono);
+    }
+
+    .empty {
+      color: var(--text-dim);
+      text-align: center;
+      padding: 16px;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+    }
+
+    @media (max-width: 1440px) {
+      .kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .charts-grid-3,
+      .split-2 {
+        grid-template-columns: 1fr;
+      }
+
+      .upload-wrap,
+      .filter-row,
+      .toolbar {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 1024px) {
+      .app {
+        padding: 12px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="title-wrap">
+      <div>
+        <h1>Metrics Snapshot 可视化面板</h1>
+        <div class="subtitle">本地离线分析 · 健康/异常优先 · Worker/Symbol 双层钻取</div>
+      </div>
+      <div class="pill">输入: metrics_snapshot.json（本地上传）</div>
+    </div>
+
+    <section class="panel">
+      <div class="upload-wrap">
+        <div class="dropzone" id="dropZone">
+          <div><strong>拖拽 JSON 文件到这里</strong>，或点击按钮选择文件</div>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+            <button class="btn primary" id="btnChooseFile">选择文件</button>
+            <input type="file" id="fileInput" accept="application/json,.json" hidden />
+            <span id="fileName" class="mono" style="color:var(--text-dim);">未加载文件</span>
+          </div>
+          <div style="font-size:12px; color:var(--text-dim);">仅本地读取，不发网络请求，不改动源文件。</div>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-item">
+            <div class="label">Generated At</div>
+            <div class="value mono" id="metaGenerated">--</div>
+          </div>
+          <div class="meta-item">
+            <div class="label">Snapshot Type</div>
+            <div class="value" id="metaSnapshotType">--</div>
+          </div>
+          <div class="meta-item">
+            <div class="label">Config</div>
+            <div class="value mono" id="metaConfig">--</div>
+          </div>
+        </div>
+      </div>
+      <div class="error-box" id="errorBox"></div>
+    </section>
+
+    <section class="panel">
+      <div class="filter-row">
+        <div class="field">
+          <label>交易所</label>
+          <select id="exchangeFilter"></select>
+        </div>
+        <div class="field">
+          <label>市场</label>
+          <select id="marketFilter"></select>
+        </div>
+        <div class="field">
+          <label>状态</label>
+          <select id="statusFilter"></select>
+        </div>
+        <div class="field">
+          <label>Worker 搜索</label>
+          <input type="text" id="workerSearch" placeholder="worker/exchange/market" />
+        </div>
+        <div class="field">
+          <label>异常过滤</label>
+          <label class="checkbox-wrap"><input type="checkbox" id="anomalyOnly" />仅显示异常</label>
+        </div>
+        <button class="btn ghost" id="btnResetFilters">重置筛选</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">全局总览</h2>
+      <div class="kpi-grid" id="kpiGrid"></div>
+      <div class="health-row">
+        <div class="health-bar" id="healthBar"></div>
+        <div class="health-labels" id="healthLabels"></div>
+      </div>
+      <div class="weak-summary" id="weakSummary">请先上传 snapshot 文件。</div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">Worker 统计层</h2>
+      <div class="charts-grid-3">
+        <div class="chart-card">
+          <div class="chart-title">Worker 频率对比（Hz p95，低值优先）</div>
+          <div class="chart" id="chartWorkerHz"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Worker 带宽（Mbps）</div>
+          <div class="chart" id="chartWorkerBw"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">健康散点（x=Hz p95, y=Error Rate）</div>
+          <div class="chart" id="chartWorkerScatter"></div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <input type="text" id="workerTableSearch" placeholder="表格内搜索（worker/status/exchange...）" />
+        <select id="workerTableSort">
+          <option value="hz_p95:asc">按 Hz p95 升序</option>
+          <option value="hz_p95:desc">按 Hz p95 降序</option>
+          <option value="bw_mbps:desc">按带宽降序</option>
+          <option value="worker_error_rate:desc">按错误率降序</option>
+          <option value="symbol_count_no_data:desc">按 no-data 数量降序</option>
+          <option value="coverage_ratio:asc">按覆盖率升序</option>
+        </select>
+        <button class="btn" id="btnExportCsv">导出当前 Worker CSV</button>
+      </div>
+
+      <div class="table-wrap">
+        <table id="workerTable">
+          <thead>
+            <tr>
+              <th data-key="worker_key">Worker</th>
+              <th data-key="status">状态</th>
+              <th data-key="hz_p95">Hz p95</th>
+              <th data-key="bw_mbps">BW Mbps</th>
+              <th data-key="worker_error_rate">Error Rate</th>
+              <th data-key="coverage_ratio">Coverage</th>
+              <th data-key="symbol_count_no_data">No Data</th>
+              <th data-key="total_events">Events</th>
+              <th data-key="total_reconnects">Reconnects</th>
+              <th data-key="fatal_errors">Fatal</th>
+            </tr>
+          </thead>
+          <tbody id="workerTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title" id="symbolTitle">Symbol 钻取层</h2>
+      <div class="charts-grid-3">
+        <div class="chart-card">
+          <div class="chart-title">Top 低频 Symbol（Hz p95 最低）</div>
+          <div class="chart" id="chartSymbolLowHz"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Top 高错误 Symbol（Error Rate 最高）</div>
+          <div class="chart" id="chartSymbolHighErr"></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Top 高带宽 Symbol（BW Mbps 最高）</div>
+          <div class="chart" id="chartSymbolHighBw"></div>
+        </div>
+      </div>
+
+      <div class="split-2">
+        <div>
+          <div class="toolbar" style="grid-template-columns:1fr; margin-bottom:8px;">
+            <input type="text" id="symbolSearch" placeholder="Symbol 明细搜索" />
+          </div>
+          <div class="table-wrap" style="max-height:320px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Hz</th>
+                  <th>Hz p95</th>
+                  <th>Error Rate</th>
+                  <th>BW Mbps</th>
+                  <th>Events</th>
+                  <th>Reconnects</th>
+                </tr>
+              </thead>
+              <tbody id="symbolTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div>
+          <div class="toolbar" style="grid-template-columns:1fr auto; margin-bottom:8px;">
+            <input type="text" id="noDataSearch" placeholder="筛选 no_data_symbols" />
+            <button class="btn" id="btnCopyNoData">复制列表</button>
+          </div>
+          <div class="chips" id="noDataList"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const state = {
+      snapshot: null,
+      workers: [],
+      selectedWorkerKey: null,
+      workerTableSort: { key: "hz_p95", dir: "asc" },
+      charts: {},
+    };
+
+    const dom = {
+      dropZone: document.getElementById("dropZone"),
+      fileInput: document.getElementById("fileInput"),
+      btnChooseFile: document.getElementById("btnChooseFile"),
+      fileName: document.getElementById("fileName"),
+      errorBox: document.getElementById("errorBox"),
+      metaGenerated: document.getElementById("metaGenerated"),
+      metaSnapshotType: document.getElementById("metaSnapshotType"),
+      metaConfig: document.getElementById("metaConfig"),
+      exchangeFilter: document.getElementById("exchangeFilter"),
+      marketFilter: document.getElementById("marketFilter"),
+      statusFilter: document.getElementById("statusFilter"),
+      workerSearch: document.getElementById("workerSearch"),
+      anomalyOnly: document.getElementById("anomalyOnly"),
+      btnResetFilters: document.getElementById("btnResetFilters"),
+      kpiGrid: document.getElementById("kpiGrid"),
+      healthBar: document.getElementById("healthBar"),
+      healthLabels: document.getElementById("healthLabels"),
+      weakSummary: document.getElementById("weakSummary"),
+      workerTableBody: document.getElementById("workerTableBody"),
+      workerTableSearch: document.getElementById("workerTableSearch"),
+      workerTableSort: document.getElementById("workerTableSort"),
+      btnExportCsv: document.getElementById("btnExportCsv"),
+      symbolTitle: document.getElementById("symbolTitle"),
+      symbolSearch: document.getElementById("symbolSearch"),
+      symbolTableBody: document.getElementById("symbolTableBody"),
+      noDataSearch: document.getElementById("noDataSearch"),
+      noDataList: document.getElementById("noDataList"),
+      btnCopyNoData: document.getElementById("btnCopyNoData"),
+      workerTable: document.getElementById("workerTable"),
+    };
+
+    function initCharts() {
+      state.charts.workerHz = echarts.init(document.getElementById("chartWorkerHz"));
+      state.charts.workerBw = echarts.init(document.getElementById("chartWorkerBw"));
+      state.charts.workerScatter = echarts.init(document.getElementById("chartWorkerScatter"));
+      state.charts.symbolLowHz = echarts.init(document.getElementById("chartSymbolLowHz"));
+      state.charts.symbolHighErr = echarts.init(document.getElementById("chartSymbolHighErr"));
+      state.charts.symbolHighBw = echarts.init(document.getElementById("chartSymbolHighBw"));
+
+      ["workerHz", "workerBw", "workerScatter"].forEach((name) => {
+        state.charts[name].on("click", (params) => {
+          const key = params.data?.worker_key || params.data?.meta?.worker_key;
+          if (key) {
+            state.selectedWorkerKey = key;
+            renderAll();
+          }
+        });
+      });
+    }
+
+    function setError(message) {
+      if (!message) {
+        dom.errorBox.style.display = "none";
+        dom.errorBox.textContent = "";
+        return;
+      }
+      dom.errorBox.style.display = "block";
+      dom.errorBox.textContent = message;
+    }
+
+    function toNum(value, fallback = 0) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    }
+
+    function fmtNum(value, digits = 2) {
+      if (!Number.isFinite(value)) return "--";
+      return value.toLocaleString("en-US", { minimumFractionDigits: digits, maximumFractionDigits: digits });
+    }
+
+    function fmtInt(value) {
+      if (!Number.isFinite(value)) return "--";
+      return Math.round(value).toLocaleString("en-US");
+    }
+
+    function fmtPct(value, digits = 2) {
+      if (!Number.isFinite(value)) return "--";
+      return `${(value * 100).toFixed(digits)}%`;
+    }
+
+    function statusTone(worker) {
+      if (toNum(worker.fatal_errors, 0) > 0) return "err";
+      if (worker.degraded || worker.isAnomaly) return "warn";
+      return "ok";
+    }
+
+    function parseWorkerEntry(key, raw, targetHz) {
+      const [kExchange, kMarket] = String(key).split(":");
+      const exchange = raw.exchange || kExchange || "unknown";
+      const market = raw.market || kMarket || "unknown";
+      const workerKey = raw.worker_id || key || `${exchange}:${market}`;
+      const symbolsMap = raw.symbols && typeof raw.symbols === "object" ? raw.symbols : {};
+      const symbolRows = Object.entries(symbolsMap).map(([symbol, row]) => ({
+        symbol,
+        hz: toNum(row.hz),
+        hz_p50: toNum(row.hz_p50),
+        hz_p95: toNum(row.hz_p95),
+        error_rate: toNum(row.error_rate),
+        reconnects: toNum(row.reconnects),
+        bw_mbps: toNum(row.bw_mbps),
+        total_events: toNum(row.total_events),
+      }));
+      const noDataSymbols = Array.isArray(raw.no_data_symbols) ? raw.no_data_symbols : [];
+      const symbolCountTotal = toNum(raw.symbol_count_total, symbolRows.length + noDataSymbols.length);
+      const symbolCountWithData = toNum(raw.symbol_count_with_data, symbolRows.length);
+      const symbolCountNoData = toNum(raw.symbol_count_no_data, noDataSymbols.length);
+      const totalEvents = toNum(raw.total_events);
+      const totalErrors = toNum(raw.total_errors);
+
+      const coverageRatio = symbolCountTotal > 0 ? symbolCountWithData / symbolCountTotal : 0;
+      const workerErrorRate = totalErrors / Math.max(totalEvents, 1);
+      const hzP95 = toNum(raw.hz_p95);
+      const isAnomaly = Boolean(raw.degraded) || toNum(raw.fatal_errors) > 0 || totalErrors > 0 || hzP95 < targetHz || symbolCountNoData > 0;
+
+      return {
+        worker_key: workerKey,
+        exchange,
+        market,
+        status: String(raw.status || "unknown"),
+        degraded: Boolean(raw.degraded),
+        window_sec: toNum(raw.window_sec),
+        shard_count: toNum(raw.shard_count),
+        order_book_limit: toNum(raw.order_book_limit),
+        batch_delay_ms: toNum(raw.batch_delay_ms),
+        total_events: totalEvents,
+        total_errors: totalErrors,
+        total_bytes: toNum(raw.total_bytes),
+        total_reconnects: toNum(raw.total_reconnects),
+        hz_p50: toNum(raw.hz_p50),
+        hz_p95: hzP95,
+        bw_mbps: toNum(raw.bw_mbps),
+        fatal_errors: toNum(raw.fatal_errors),
+        symbol_count_total: symbolCountTotal,
+        symbol_count_with_data: symbolCountWithData,
+        symbol_count_no_data: symbolCountNoData,
+        no_data_symbols: noDataSymbols,
+        coverage_ratio: coverageRatio,
+        worker_error_rate: workerErrorRate,
+        isAnomaly,
+        symbol_rows: symbolRows,
+      };
+    }
+
+    function validateSnapshot(data) {
+      if (!data || typeof data !== "object") {
+        throw new Error("文件不是合法 JSON 对象。");
+      }
+      const required = ["generated_at", "config", "workers", "global"];
+      const missing = required.filter((k) => !(k in data));
+      if (missing.length > 0) {
+        throw new Error(`缺少必要字段: ${missing.join(", ")}`);
+      }
+      if (typeof data.workers !== "object" || data.workers === null) {
+        throw new Error("workers 字段必须是对象。");
+      }
+      if (typeof data.global !== "object" || data.global === null) {
+        throw new Error("global 字段必须是对象。");
+      }
+    }
+
+    function normalizeSnapshot(data) {
+      validateSnapshot(data);
+      const targetHz = toNum(data.config?.target_hz, 2);
+      const workers = Object.entries(data.workers).map(([key, raw]) => parseWorkerEntry(key, raw || {}, targetHz));
+      return {
+        ...data,
+        workers_array: workers,
+        target_hz: targetHz,
+      };
+    }
+
+    function buildFilterOptions(workers) {
+      const exchanges = [...new Set(workers.map((w) => w.exchange))].sort();
+      const markets = [...new Set(workers.map((w) => w.market))].sort();
+      const statuses = [...new Set(workers.map((w) => w.status))].sort();
+      dom.exchangeFilter.innerHTML = `<option value="all">全部</option>${exchanges.map((e) => `<option value="${e}">${e}</option>`).join("")}`;
+      dom.marketFilter.innerHTML = `<option value="all">全部</option>${markets.map((m) => `<option value="${m}">${m}</option>`).join("")}`;
+      dom.statusFilter.innerHTML = `<option value="all">全部</option>${statuses.map((s) => `<option value="${s}">${s}</option>`).join("")}`;
+    }
+
+    function currentFilteredWorkers() {
+      if (!state.snapshot) return [];
+      const exchange = dom.exchangeFilter.value || "all";
+      const market = dom.marketFilter.value || "all";
+      const status = dom.statusFilter.value || "all";
+      const search = (dom.workerSearch.value || "").trim().toLowerCase();
+      const anomalyOnly = dom.anomalyOnly.checked;
+
+      return state.workers.filter((w) => {
+        if (exchange !== "all" && w.exchange !== exchange) return false;
+        if (market !== "all" && w.market !== market) return false;
+        if (status !== "all" && w.status !== status) return false;
+        if (anomalyOnly && !w.isAnomaly) return false;
+        if (search) {
+          const source = `${w.worker_key} ${w.exchange} ${w.market} ${w.status}`.toLowerCase();
+          if (!source.includes(search)) return false;
+        }
+        return true;
+      });
+    }
+
+    function aggregateOverview(workers) {
+      const totalWorkers = workers.length;
+      const totalEvents = workers.reduce((s, w) => s + w.total_events, 0);
+      const totalBytes = workers.reduce((s, w) => s + w.total_bytes, 0);
+      const avgBw = totalWorkers > 0 ? workers.reduce((s, w) => s + w.bw_mbps, 0) / totalWorkers : 0;
+      const peakBw = workers.reduce((m, w) => Math.max(m, w.bw_mbps), 0);
+      const noData = workers.reduce((s, w) => s + w.symbol_count_no_data, 0);
+      const fatalCount = workers.filter((w) => w.fatal_errors > 0).length;
+      const degradedCount = workers.filter((w) => w.fatal_errors <= 0 && (w.degraded || w.hz_p95 < state.snapshot.target_hz || w.total_errors > 0 || w.symbol_count_no_data > 0)).length;
+      const healthyCount = Math.max(0, totalWorkers - fatalCount - degradedCount);
+      const elapsedSec = toNum(state.snapshot.global?.elapsed_sec, 0);
+      return {
+        totalWorkers,
+        totalEvents,
+        totalBytes,
+        avgBw,
+        peakBw,
+        noData,
+        degradedCount,
+        fatalCount,
+        healthyCount,
+        elapsedSec,
+      };
+    }
+
+    function renderKpis(stats) {
+      const items = [
+        ["总事件 Total Events", fmtInt(stats.totalEvents)],
+        ["平均带宽 Avg BW", `${fmtNum(stats.avgBw, 3)} Mbps`],
+        ["峰值带宽 Peak BW", `${fmtNum(stats.peakBw, 3)} Mbps`],
+        ["运行时长 Elapsed", `${fmtNum(stats.elapsedSec, 1)} s`],
+        ["Worker 数", fmtInt(stats.totalWorkers)],
+        ["No Data Symbols", fmtInt(stats.noData)],
+        ["Degraded Workers", fmtInt(stats.degradedCount)],
+        ["Fatal Workers", fmtInt(stats.fatalCount)],
+      ];
+      dom.kpiGrid.innerHTML = items.map(([k, v]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+    }
+
+    function renderHealth(stats) {
+      const total = Math.max(stats.totalWorkers, 1);
+      const healthyPct = (stats.healthyCount / total) * 100;
+      const degradedPct = (stats.degradedCount / total) * 100;
+      const fatalPct = (stats.fatalCount / total) * 100;
+
+      dom.healthBar.innerHTML = `
+        <div class="health-seg" style="width:${healthyPct}%; background:var(--ok)"></div>
+        <div class="health-seg" style="width:${degradedPct}%; background:var(--warn)"></div>
+        <div class="health-seg" style="width:${fatalPct}%; background:var(--err)"></div>
+      `;
+
+      dom.healthLabels.innerHTML = `
+        <span><i class="dot" style="background:var(--ok)"></i>健康 ${stats.healthyCount}</span>
+        <span><i class="dot" style="background:var(--warn)"></i>降级 ${stats.degradedCount}</span>
+        <span><i class="dot" style="background:var(--err)"></i>致命 ${stats.fatalCount}</span>
+      `;
+    }
+
+    function renderWeakSummary(workers) {
+      if (workers.length === 0) {
+        dom.weakSummary.textContent = "当前筛选结果为空。";
+        return;
+      }
+      const minHz = workers.reduce((m, w) => (w.hz_p95 < m.hz_p95 ? w : m), workers[0]);
+      const maxNoData = workers.reduce((m, w) => (w.symbol_count_no_data > m.symbol_count_no_data ? w : m), workers[0]);
+      const maxErr = workers.reduce((m, w) => (w.worker_error_rate > m.worker_error_rate ? w : m), workers[0]);
+
+      dom.weakSummary.textContent = `当前最弱环节：低频风险 ${minHz.worker_key} (hz_p95=${fmtNum(minHz.hz_p95, 2)}), ` +
+        `覆盖缺口 ${maxNoData.worker_key} (no_data=${maxNoData.symbol_count_no_data}), ` +
+        `错误率最高 ${maxErr.worker_key} (error_rate=${fmtPct(maxErr.worker_error_rate, 2)}).`;
+    }
+
+    function renderWorkerCharts(workers) {
+      const targetHz = state.snapshot.target_hz;
+
+      const hzRows = [...workers].sort((a, b) => a.hz_p95 - b.hz_p95);
+      state.charts.workerHz.setOption({
+        backgroundColor: "transparent",
+        animation: false,
+        grid: { left: 88, right: 16, top: 10, bottom: 30 },
+        xAxis: { type: "value", name: "Hz p95", nameTextStyle: { color: "#8ea6d8" }, axisLabel: { color: "#9db4dd" }, splitLine: { lineStyle: { color: "#173766" } } },
+        yAxis: {
+          type: "category",
+          data: hzRows.map((w) => `${w.exchange}/${w.market}`),
+          axisLabel: { color: "#bdd2f5", fontSize: 11 },
+        },
+        series: [{
+          type: "bar",
+          data: hzRows.map((w) => ({ value: w.hz_p95, worker_key: w.worker_key, itemStyle: { color: w.hz_p95 < targetHz ? "#ff667a" : "#58c6ff" } })),
+          barMaxWidth: 16,
+        }],
+        tooltip: {
+          trigger: "item",
+          formatter: (p) => {
+            const w = hzRows[p.dataIndex];
+            return `${w.worker_key}<br/>hz_p95=${fmtNum(w.hz_p95, 3)} (target=${fmtNum(targetHz, 2)})`;
+          },
+        },
+      }, true);
+
+      const bwRows = [...workers].sort((a, b) => b.bw_mbps - a.bw_mbps);
+      state.charts.workerBw.setOption({
+        backgroundColor: "transparent",
+        animation: false,
+        grid: { left: 88, right: 16, top: 10, bottom: 30 },
+        xAxis: { type: "value", name: "Mbps", nameTextStyle: { color: "#8ea6d8" }, axisLabel: { color: "#9db4dd" }, splitLine: { lineStyle: { color: "#173766" } } },
+        yAxis: { type: "category", data: bwRows.map((w) => `${w.exchange}/${w.market}`), axisLabel: { color: "#bdd2f5", fontSize: 11 } },
+        series: [{ type: "bar", barMaxWidth: 16, data: bwRows.map((w) => ({ value: w.bw_mbps, worker_key: w.worker_key, itemStyle: { color: "#7b8dff" } })) }],
+        tooltip: {
+          trigger: "item",
+          formatter: (p) => `${bwRows[p.dataIndex].worker_key}<br/>bw=${fmtNum(p.value, 4)} Mbps`,
+        },
+      }, true);
+
+      const scatterRows = workers.map((w) => {
+        const tone = statusTone(w);
+        let color = "#40d47e";
+        if (tone === "warn") color = "#ffb347";
+        if (tone === "err") color = "#ff667a";
+        return {
+          value: [w.hz_p95, w.worker_error_rate, w.total_events],
+          meta: w,
+          itemStyle: { color },
+          symbolSize: 10 + Math.min(26, Math.log10(w.total_events + 1) * 6),
+        };
+      });
+
+      state.charts.workerScatter.setOption({
+        backgroundColor: "transparent",
+        animation: false,
+        grid: { left: 50, right: 15, top: 20, bottom: 35 },
+        xAxis: { type: "value", name: "hz_p95", axisLabel: { color: "#9db4dd" }, splitLine: { lineStyle: { color: "#173766" } } },
+        yAxis: { type: "value", name: "error_rate", axisLabel: { color: "#9db4dd" }, splitLine: { lineStyle: { color: "#173766" } } },
+        tooltip: {
+          formatter: (p) => {
+            const w = p.data.meta;
+            return `${w.worker_key}<br/>hz_p95=${fmtNum(w.hz_p95, 3)}<br/>error_rate=${fmtPct(w.worker_error_rate, 3)}<br/>events=${fmtInt(w.total_events)}`;
+          },
+        },
+        series: [{ type: "scatter", data: scatterRows }],
+      }, true);
+    }
+
+    function sortedWorkerRows(rows) {
+      const search = (dom.workerTableSearch.value || "").trim().toLowerCase();
+      const { key, dir } = state.workerTableSort;
+      const mul = dir === "asc" ? 1 : -1;
+      let result = rows;
+      if (search) {
+        result = result.filter((w) => {
+          const src = `${w.worker_key} ${w.exchange} ${w.market} ${w.status}`.toLowerCase();
+          return src.includes(search);
+        });
+      }
+      result = [...result].sort((a, b) => {
+        const av = a[key];
+        const bv = b[key];
+        if (typeof av === "string" || typeof bv === "string") {
+          return String(av).localeCompare(String(bv)) * mul;
+        }
+        return (toNum(av) - toNum(bv)) * mul;
+      });
+      return result;
+    }
+
+    function renderWorkerTable(rows) {
+      const tableRows = sortedWorkerRows(rows);
+      if (!state.selectedWorkerKey || !rows.some((w) => w.worker_key === state.selectedWorkerKey)) {
+        state.selectedWorkerKey = rows[0]?.worker_key || null;
+      }
+
+      if (tableRows.length === 0) {
+        dom.workerTableBody.innerHTML = `<tr><td colspan="10" class="empty">无匹配 Worker</td></tr>`;
+        return;
+      }
+
+      dom.workerTableBody.innerHTML = tableRows.map((w) => {
+        const tone = statusTone(w);
+        const selected = state.selectedWorkerKey === w.worker_key ? "selected" : "";
+        return `
+          <tr data-worker-key="${w.worker_key}" class="${selected}">
+            <td class="mono">${w.worker_key}</td>
+            <td><span class="status-badge status-${tone}">${w.status}${w.degraded ? " / degraded" : ""}</span></td>
+            <td>${fmtNum(w.hz_p95, 3)}</td>
+            <td>${fmtNum(w.bw_mbps, 4)}</td>
+            <td>${fmtPct(w.worker_error_rate, 3)}</td>
+            <td>${fmtPct(w.coverage_ratio, 2)} (${w.symbol_count_with_data}/${w.symbol_count_total})</td>
+            <td>${fmtInt(w.symbol_count_no_data)}</td>
+            <td>${fmtInt(w.total_events)}</td>
+            <td>${fmtInt(w.total_reconnects)}</td>
+            <td>${fmtInt(w.fatal_errors)}</td>
+          </tr>
+        `;
+      }).join("");
+
+      dom.workerTableBody.querySelectorAll("tr[data-worker-key]").forEach((tr) => {
+        tr.addEventListener("click", () => {
+          state.selectedWorkerKey = tr.dataset.workerKey;
+          renderAll();
+        });
+      });
+    }
+
+    function getSelectedWorker(filteredWorkers) {
+      if (!state.selectedWorkerKey) return filteredWorkers[0] || null;
+      return filteredWorkers.find((w) => w.worker_key === state.selectedWorkerKey) || filteredWorkers[0] || null;
+    }
+
+    function renderSymbolCharts(symbolRows) {
+      const lowHz = [...symbolRows].sort((a, b) => a.hz_p95 - b.hz_p95).slice(0, 12);
+      const highErr = [...symbolRows].sort((a, b) => b.error_rate - a.error_rate).slice(0, 12);
+      const highBw = [...symbolRows].sort((a, b) => b.bw_mbps - a.bw_mbps).slice(0, 12);
+
+      const common = {
+        backgroundColor: "transparent",
+        animation: false,
+        grid: { left: 90, right: 16, top: 8, bottom: 25 },
+        xAxis: { type: "value", axisLabel: { color: "#9db4dd" }, splitLine: { lineStyle: { color: "#173766" } } },
+        yAxis: { type: "category", axisLabel: { color: "#bdd2f5", fontSize: 11 } },
+      };
+
+      state.charts.symbolLowHz.setOption({
+        ...common,
+        xAxis: { ...common.xAxis, name: "hz_p95" },
+        yAxis: { ...common.yAxis, data: lowHz.map((s) => s.symbol) },
+        series: [{ type: "bar", barMaxWidth: 16, data: lowHz.map((s) => ({ value: s.hz_p95, itemStyle: { color: "#ffb347" } })) }],
+      }, true);
+
+      state.charts.symbolHighErr.setOption({
+        ...common,
+        xAxis: { ...common.xAxis, name: "error_rate" },
+        yAxis: { ...common.yAxis, data: highErr.map((s) => s.symbol) },
+        series: [{ type: "bar", barMaxWidth: 16, data: highErr.map((s) => ({ value: s.error_rate, itemStyle: { color: "#ff667a" } })) }],
+      }, true);
+
+      state.charts.symbolHighBw.setOption({
+        ...common,
+        xAxis: { ...common.xAxis, name: "bw_mbps" },
+        yAxis: { ...common.yAxis, data: highBw.map((s) => s.symbol) },
+        series: [{ type: "bar", barMaxWidth: 16, data: highBw.map((s) => ({ value: s.bw_mbps, itemStyle: { color: "#58c6ff" } })) }],
+      }, true);
+    }
+
+    function renderSymbolTable(symbolRows) {
+      const search = (dom.symbolSearch.value || "").trim().toLowerCase();
+      let rows = symbolRows;
+      if (search) {
+        rows = rows.filter((s) => s.symbol.toLowerCase().includes(search));
+      }
+      rows = [...rows].sort((a, b) => b.total_events - a.total_events);
+
+      if (rows.length === 0) {
+        dom.symbolTableBody.innerHTML = `<tr><td colspan="7" class="empty">无 Symbol 数据</td></tr>`;
+        return;
+      }
+      dom.symbolTableBody.innerHTML = rows.map((s) => `
+        <tr>
+          <td class="mono">${s.symbol}</td>
+          <td>${fmtNum(s.hz, 3)}</td>
+          <td>${fmtNum(s.hz_p95, 3)}</td>
+          <td>${fmtPct(s.error_rate, 3)}</td>
+          <td>${fmtNum(s.bw_mbps, 4)}</td>
+          <td>${fmtInt(s.total_events)}</td>
+          <td>${fmtInt(s.reconnects)}</td>
+        </tr>
+      `).join("");
+    }
+
+    function renderNoDataList(worker) {
+      const search = (dom.noDataSearch.value || "").trim().toLowerCase();
+      const rows = worker.no_data_symbols.filter((s) => s.toLowerCase().includes(search));
+      if (rows.length === 0) {
+        dom.noDataList.innerHTML = `<div class="empty" style="width:100%;">无 no_data_symbols</div>`;
+        return rows;
+      }
+      dom.noDataList.innerHTML = rows.map((s) => `<span class="chip">${s}</span>`).join("");
+      return rows;
+    }
+
+    function renderSymbolSection(filteredWorkers) {
+      const worker = getSelectedWorker(filteredWorkers);
+      if (!worker) {
+        dom.symbolTitle.textContent = "Symbol 钻取层";
+        dom.symbolTableBody.innerHTML = `<tr><td colspan="7" class="empty">请先加载数据并选择 Worker</td></tr>`;
+        dom.noDataList.innerHTML = `<div class="empty" style="width:100%;">--</div>`;
+        ["symbolLowHz", "symbolHighErr", "symbolHighBw"].forEach((k) => state.charts[k].clear());
+        return;
+      }
+
+      state.selectedWorkerKey = worker.worker_key;
+      dom.symbolTitle.textContent = `Symbol 钻取层 · ${worker.worker_key} · coverage=${fmtPct(worker.coverage_ratio, 2)}`;
+      renderSymbolCharts(worker.symbol_rows);
+      renderSymbolTable(worker.symbol_rows);
+      const noDataRows = renderNoDataList(worker);
+
+      dom.btnCopyNoData.onclick = async () => {
+        try {
+          await navigator.clipboard.writeText(noDataRows.join("\n"));
+          const old = dom.btnCopyNoData.textContent;
+          dom.btnCopyNoData.textContent = "已复制";
+          setTimeout(() => {
+            dom.btnCopyNoData.textContent = old;
+          }, 1200);
+        } catch {
+          setError("复制失败：浏览器不允许写入剪贴板。可手动选中复制。");
+        }
+      };
+    }
+
+    function exportWorkerCsv(rows) {
+      if (rows.length === 0) {
+        setError("当前筛选结果为空，无法导出 CSV。");
+        return;
+      }
+      const headers = ["worker_key", "exchange", "market", "status", "degraded", "hz_p50", "hz_p95", "bw_mbps", "worker_error_rate", "coverage_ratio", "symbol_count_total", "symbol_count_with_data", "symbol_count_no_data", "total_events", "total_errors", "total_reconnects", "fatal_errors"];
+      const lines = [headers.join(",")];
+      rows.forEach((w) => {
+        const values = headers.map((k) => {
+          const v = w[k];
+          if (typeof v === "string") return `"${v.replaceAll('"', '""')}"`;
+          return String(v);
+        });
+        lines.push(values.join(","));
+      });
+      const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "worker_metrics_filtered.csv";
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+
+    function renderAll() {
+      setError("");
+      if (!state.snapshot) return;
+
+      const workers = currentFilteredWorkers();
+      const stats = aggregateOverview(workers);
+      renderKpis(stats);
+      renderHealth(stats);
+      renderWeakSummary(workers);
+      renderWorkerCharts(workers);
+      renderWorkerTable(workers);
+      renderSymbolSection(workers);
+    }
+
+    function updateWorkerSortHeader() {
+      const { key, dir } = state.workerTableSort;
+      dom.workerTable.querySelectorAll("th[data-key]").forEach((cell) => {
+        cell.classList.remove("sorting");
+        cell.removeAttribute("data-sort-arrow");
+        if (cell.dataset.key === key) {
+          cell.classList.add("sorting");
+          cell.setAttribute("data-sort-arrow", dir === "asc" ? "▲" : "▼");
+        }
+      });
+    }
+
+    function bindControls() {
+      [dom.exchangeFilter, dom.marketFilter, dom.statusFilter, dom.workerSearch, dom.anomalyOnly, dom.workerTableSearch, dom.workerTableSort, dom.symbolSearch, dom.noDataSearch].forEach((el) => {
+        el.addEventListener("input", () => {
+          if (el === dom.workerTableSort) {
+            const [key, dir] = dom.workerTableSort.value.split(":");
+            state.workerTableSort = { key, dir };
+            updateWorkerSortHeader();
+          }
+          renderAll();
+        });
+        el.addEventListener("change", () => {
+          if (el === dom.workerTableSort) {
+            const [key, dir] = dom.workerTableSort.value.split(":");
+            state.workerTableSort = { key, dir };
+            updateWorkerSortHeader();
+          }
+          renderAll();
+        });
+      });
+
+      dom.btnResetFilters.addEventListener("click", () => {
+        dom.exchangeFilter.value = "all";
+        dom.marketFilter.value = "all";
+        dom.statusFilter.value = "all";
+        dom.workerSearch.value = "";
+        dom.workerTableSearch.value = "";
+        dom.anomalyOnly.checked = false;
+        dom.symbolSearch.value = "";
+        dom.noDataSearch.value = "";
+        dom.workerTableSort.value = "hz_p95:asc";
+        state.workerTableSort = { key: "hz_p95", dir: "asc" };
+        updateWorkerSortHeader();
+        renderAll();
+      });
+
+      dom.btnExportCsv.addEventListener("click", () => {
+        exportWorkerCsv(sortedWorkerRows(currentFilteredWorkers()));
+      });
+
+      dom.workerTable.querySelectorAll("th[data-key]").forEach((th) => {
+        th.addEventListener("click", () => {
+          const key = th.dataset.key;
+          const isCurrent = state.workerTableSort.key === key;
+          const dir = isCurrent && state.workerTableSort.dir === "asc" ? "desc" : "asc";
+          state.workerTableSort = { key, dir };
+          const targetValue = `${key}:${dir}`;
+          const hasOption = [...dom.workerTableSort.options].some((o) => o.value === targetValue);
+          if (hasOption) dom.workerTableSort.value = targetValue;
+          updateWorkerSortHeader();
+          renderAll();
+        });
+      });
+    }
+
+    async function loadFromFile(file) {
+      if (!file) return;
+      try {
+        setError("");
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        const normalized = normalizeSnapshot(parsed);
+        state.snapshot = normalized;
+        state.workers = normalized.workers_array;
+        state.selectedWorkerKey = state.workers[0]?.worker_key || null;
+
+        dom.fileName.textContent = `${file.name} (${fmtInt(file.size)} bytes)`;
+        dom.metaGenerated.textContent = normalized.generated_at || "--";
+        dom.metaSnapshotType.textContent = normalized.snapshot_type || "--";
+        dom.metaConfig.textContent = `target_hz=${fmtNum(normalized.target_hz, 2)} | window=${toNum(normalized.config?.window_sec, 10)}s | workers=${state.workers.length}`;
+
+        buildFilterOptions(state.workers);
+        renderAll();
+      } catch (err) {
+        setError(`解析失败：${err.message || err}`);
+      }
+    }
+
+    function bindFileInput() {
+      dom.btnChooseFile.addEventListener("click", () => dom.fileInput.click());
+      dom.fileInput.addEventListener("change", () => {
+        const file = dom.fileInput.files?.[0];
+        loadFromFile(file);
+      });
+
+      ["dragenter", "dragover"].forEach((ev) => {
+        dom.dropZone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          dom.dropZone.classList.add("active");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((ev) => {
+        dom.dropZone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          if (ev === "drop") {
+            const file = e.dataTransfer?.files?.[0];
+            if (file) loadFromFile(file);
+          }
+          dom.dropZone.classList.remove("active");
+        });
+      });
+    }
+
+    function loadDefaultSnapshot() {
+      fetch("./data/metrics_snapshot.json", { cache: "no-store" })
+        .then((r) => {
+          if (!r.ok) throw new Error("default snapshot not found");
+          return r.json();
+        })
+        .then((json) => {
+          const normalized = normalizeSnapshot(json);
+          state.snapshot = normalized;
+          state.workers = normalized.workers_array;
+          state.selectedWorkerKey = state.workers[0]?.worker_key || null;
+          dom.fileName.textContent = "data/metrics_snapshot.json (自动加载)";
+          dom.metaGenerated.textContent = normalized.generated_at || "--";
+          dom.metaSnapshotType.textContent = normalized.snapshot_type || "--";
+          dom.metaConfig.textContent = `target_hz=${fmtNum(normalized.target_hz, 2)} | window=${toNum(normalized.config?.window_sec, 10)}s | workers=${state.workers.length}`;
+          buildFilterOptions(state.workers);
+          renderAll();
+        })
+        .catch(() => {
+          dom.metaGenerated.textContent = "--";
+          dom.metaSnapshotType.textContent = "--";
+          dom.metaConfig.textContent = "等待手动上传";
+        });
+    }
+
+    function boot() {
+      initCharts();
+      bindControls();
+      bindFileInput();
+      updateWorkerSortHeader();
+      loadDefaultSnapshot();
+      window.addEventListener("resize", () => {
+        Object.values(state.charts).forEach((c) => c.resize());
+      });
+    }
+
+    boot();
+  </script>
+</body>
+</html>

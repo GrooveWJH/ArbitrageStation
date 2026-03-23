@@ -28,6 +28,8 @@ frontend/build/
 # Env files
 .env
 .env.*
+!scripts/sandbox_ccxt_pro/.env.example
+scripts/sandbox_ccxt_pro/.env
 
 # Coverage
 .coverage
@@ -39,3 +41,7 @@ htmlcov/
 *.swp
 
 tmp/
+
+# Sandbox runtime artifacts
+scripts/sandbox_ccxt_pro/**/__pycache__/
+scripts/sandbox_ccxt_pro/data/*.json
