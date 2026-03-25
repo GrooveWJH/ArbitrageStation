@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Literal
 
 DecisionAction = Literal["split", "merge", "hold"]
@@ -15,6 +15,7 @@ WorkerStatus = Literal[
     "closing",
     "closed",
 ]
+ErrorCode = Literal["AUTH_FAIL", "SYMBOL_FAIL", "RATE_LIMIT", "NETWORK", "LOOP", "UNKNOWN"]
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,13 @@ class WorkerMetric:
     no_data_symbols: list[str] | None = None
     decision: RebalanceDecision | None = None
     fatal_errors: int = 0
+    error_class_counts: dict[str, int] = field(default_factory=dict)
+    last_error_code: str | None = None
+    terminal_reason: str | None = None
+    restart_count: int = 0
+    last_restart_reason: str | None = None
+    degrade_stage: int = 0
+    healthy_windows: int = 0
 
     def to_dict(self) -> dict:
         out = asdict(self)

@@ -26,6 +26,7 @@ class WorkerConfig:
     adaptive_rebalance: bool
     rebalance_cooldown_sec: int
     exchange_profile: str
+    health_recover_windows: int
 class WorkerRuntime:
     def __init__(self, config: WorkerConfig, metrics_q, stop_event):
         self.config = config
@@ -35,6 +36,7 @@ class WorkerRuntime:
         self.first_data_at: float | None = None
         self.last_report_at = 0.0
         self.status = "starting"
+        self.terminal_reason: str | None = None
 
         perf = resolve_exchange_profile(config.exchange_profile, config.exchange)
         self.shard_count = max(1, min(len(config.symbols), config.shard_count))
@@ -44,13 +46,27 @@ class WorkerRuntime:
         self.order_book_limit = config.order_book_limit
         self.max_reconnect_backoff = perf.max_reconnect_backoff
 
-        self.health_gate = HealthGate(target_hz=config.target_hz, rebalance_cooldown_sec=config.rebalance_cooldown_sec, adaptive_rebalance=config.adaptive_rebalance)
+        self.health_gate = HealthGate(
+            target_hz=config.target_hz,
+            rebalance_cooldown_sec=config.rebalance_cooldown_sec,
+            adaptive_rebalance=config.adaptive_rebalance,
+            recover_windows=max(1, config.health_recover_windows),
+            base_order_book_limit=max(1, config.order_book_limit),
+            base_batch_delay_ms=max(0, self.batch_delay_ms),
+            base_shard_count=max(1, self.shard_count),
+        )
         self.metric_engine = MetricEngine(config.symbols, config.window_sec)
         self.shards: list[list[str]] = []
         self.engines: list[IngressEngine] = []
         self._ccxtpro = None
         self._weighted_enabled = False
         self._stable_windows = 0
+        self.external_error_class_counts: dict[str, int] = {}
+        self.external_last_error_code: str | None = None
+
+    def note_external_error(self, code: str) -> None:
+        self.external_error_class_counts[code] = self.external_error_class_counts.get(code, 0) + 1
+        self.external_last_error_code = code
     def _build_client(self):
         if self._ccxtpro is None:
             raise RuntimeError("ccxt.pro is not initialized")
@@ -109,8 +125,11 @@ class WorkerRuntime:
                 use_batch=self._supports_batch(client),
             )
             self.engines.append(engine)
+            # Report startup progress per shard so supervisor UI can move early.
+            self.metrics_q.put(self._build_metric(self._symbol_snapshots(time.time())).to_dict())
             if idx + 1 < len(self.shards):
-                await asyncio.sleep(max(0.0, self.batch_delay_ms / 1000.0))
+                # Keep a tiny cooperative yield, but avoid doubling startup delay.
+                await asyncio.sleep(0)
 
     def _symbol_snapshots(self, now: float) -> dict[str, dict]:
         return self.metric_engine.snapshots(now)
@@ -146,10 +165,30 @@ class WorkerRuntime:
         self.batch_delay_ms = max(0, int(new_delay))
         if self.health_gate.degraded:
             self.status = "degraded"
+        elif self.status == "degraded":
+            self.status = "running"
         return decision, need_restart
 
     def _total_fatal_errors(self) -> int:
         return sum(e.fatal_errors for e in self.engines)
+
+    def _aggregate_error_class_counts(self) -> dict[str, int]:
+        out = dict(self.external_error_class_counts)
+        for engine in self.engines:
+            for code, count in engine.error_class_counts.items():
+                out[code] = out.get(code, 0) + count
+        return out
+
+    def _last_error_code(self) -> str | None:
+        for engine in self.engines:
+            if engine.last_fatal_code:
+                return engine.last_fatal_code
+        if self.external_last_error_code:
+            return self.external_last_error_code
+        for engine in self.engines:
+            if engine.last_error_code:
+                return engine.last_error_code
+        return None
 
     def _build_metric(self, snaps: dict[str, dict], decision: RebalanceDecision | None = None) -> WorkerMetric:
         hz_vals = [float(v.get("hz", 0.0)) for v in snaps.values()]
@@ -192,6 +231,11 @@ class WorkerRuntime:
             no_data_symbols=no_data_symbols,
             decision=decision,
             fatal_errors=self._total_fatal_errors(),
+            error_class_counts=self._aggregate_error_class_counts(),
+            last_error_code=self._last_error_code(),
+            terminal_reason=self.terminal_reason,
+            degrade_stage=self.health_gate.degrade_stage,
+            healthy_windows=self.health_gate.healthy_windows,
         )
     async def run(self) -> None:
         import ccxt.pro as ccxtpro
@@ -209,14 +253,17 @@ class WorkerRuntime:
 
                 if self.first_data_at is None and now - self.started_at > self.config.max_wait:
                     self.status = "timeout"
+                    self.terminal_reason = "UNKNOWN"
                     self.metrics_q.put(self._build_metric(snaps).to_dict())
                     break
                 if self.first_data_at is not None and now - self.first_data_at >= self.config.duration:
                     self.status = "done"
+                    self.terminal_reason = None
                     self.metrics_q.put(self._build_metric(snaps).to_dict())
                     break
                 if self._total_fatal_errors() > 0:
                     self.status = "error"
+                    self.terminal_reason = self._last_error_code() or "UNKNOWN"
                     self.metrics_q.put(self._build_metric(snaps).to_dict())
                     break
                 if now - self.last_report_at < self.config.window_sec:

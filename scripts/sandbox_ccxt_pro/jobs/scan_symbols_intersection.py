@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Periodically scan symbol intersection and write JSON file."""
+"""Periodically scan symbol intersection and write compact schema v3 JSON."""
 
 from __future__ import annotations
 
@@ -44,17 +44,33 @@ def parse_args() -> argparse.Namespace:
     return args
 
 
-def write_report(out_path: Path, report: dict) -> None:
-    write_json_file(
-        out_path,
-        {"generated_at": datetime.now().astimezone().isoformat(), "report": report},
-    )
+def _group_id(exchanges: list[str]) -> str:
+    if set(exchanges) == set(SUPPORTED_EXCHANGES):
+        return "all_4"
+    return "group_1"
+
+
+def write_report(out_path: Path, exchanges: list[str], report: dict) -> None:
+    gid = _group_id(exchanges)
+    payload = {
+        "schema_version": 3,
+        "generated_at": datetime.now().astimezone().isoformat(),
+        "mode": "single_group",
+        "groups": [{"id": gid, "exchanges": exchanges, "symbols": report["intersection_symbols"]}],
+        "meta": {
+            "intersection_rule": "group symbols = intersection(spot and futures) across group exchanges",
+            "group_count": 1,
+            "symbol_counts": {gid: report["intersection_count"]},
+            "inputs": {gid: exchanges},
+        },
+    }
+    write_json_file(out_path, payload)
 
 
 def run_once(exchanges: list[str], out_path: Path) -> None:
     log_info(f"开始扫描: exchanges={exchanges}")
     report = build_report(exchanges)
-    write_report(out_path, report)
+    write_report(out_path, exchanges, report)
     log_info(f"扫描完成: intersection={report['intersection_count']} output={out_path}")
 
 

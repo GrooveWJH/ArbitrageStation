@@ -2,34 +2,51 @@ from __future__ import annotations
 
 import asyncio
 import signal
+import time
 
 from lib.marketdata.load_balance.types import WorkerMetric
 from lib.marketdata.load_balance.worker import WorkerConfig, WorkerRuntime
 
 
-def _is_benign_async_exception(exc: BaseException | None, message: str) -> bool:
-    if "Unclosed client session" in message or "Unclosed connector" in message:
-        return True
-    if "Task was destroyed but it is pending!" in message:
-        return True
-    if "requires to release all resources with an explicit call to the .close() coroutine" in message:
-        return True
+def _classify_loop_exception(exc: BaseException | None, message: str) -> str | None:
+    if exc is not None and isinstance(exc, asyncio.CancelledError):
+        return None
+    text = message if message else ""
+    if exc is not None:
+        text = f"{type(exc).__name__}: {exc} {text}"
+    if "AuthenticationError" in text or "PermissionDenied" in text:
+        return "AUTH_FAIL"
+    if "BadSymbol" in text or "NotSupported" in text:
+        return "SYMBOL_FAIL"
+    if "Requests are too frequent" in text or "nonce is behind cache" in text:
+        return "RATE_LIMIT"
+    if (
+        "RequestTimeout" in text
+        or "Cannot connect to host" in text
+        or "getaddrinfo" in text
+        or "Session is closed" in text
+        or "Event loop is closed" in text
+        or "Connection closed by remote server" in text
+    ):
+        return "NETWORK"
+    if "Task was destroyed but it is pending!" in text:
+        return "LOOP"
+    if "Unclosed client session" in text or "Unclosed connector" in text:
+        return "LOOP"
+    if "requires to release all resources with an explicit call to the .close() coroutine" in text:
+        return "LOOP"
+    if "Future exception was never retrieved" in text and "CancelledError" in text:
+        return None
+    if not text.strip():
+        return None
+    return "UNKNOWN"
+
+
+def _format_exception(exc: BaseException | None, message: str) -> str:
     if exc is None:
-        return False
-    if isinstance(exc, asyncio.CancelledError):
-        return True
+        return message
     text = f"{type(exc).__name__}: {exc}"
-    if "RequestTimeout" in text or "Cannot connect to host" in text:
-        return True
-    if "Event loop is closed" in text or "Session is closed" in text:
-        return True
-    if isinstance(exc, AttributeError) and "getaddrinfo" in text:
-        return True
-    if isinstance(exc, KeyError) and "api.gateio.ws" in text:
-        return True
-    if "Future exception was never retrieved" in message and "CancelledError" in text:
-        return True
-    return False
+    return f"{text} {message}".strip()
 
 
 def run_worker_process(config_dict: dict, metrics_q, stop_event) -> None:
@@ -40,12 +57,16 @@ def run_worker_process(config_dict: dict, metrics_q, stop_event) -> None:
     def _loop_exception_handler(_, context: dict) -> None:
         msg = str(context.get("message", ""))
         exc = context.get("exception")
-        if _is_benign_async_exception(exc, msg):
+        code = _classify_loop_exception(exc, msg)
+        if code is None:
             return
-        if exc is None:
-            print(f"[worker:{cfg.worker_id}] ASYNC_WARN: {msg}")
-            return
-        print(f"[worker:{cfg.worker_id}] ASYNC_WARN: {type(exc).__name__}: {exc}")
+        runtime.note_external_error(code)
+        now = time.time()
+        if now - _loop_exception_handler.last_print_at.get(code, 0.0) >= 2.0:
+            _loop_exception_handler.last_print_at[code] = now
+            print(f"[worker:{cfg.worker_id}] ASYNC_WARN[{code}]: {_format_exception(exc, msg)}")
+
+    _loop_exception_handler.last_print_at = {}
 
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -74,6 +95,11 @@ def run_worker_process(config_dict: dict, metrics_q, stop_event) -> None:
                 symbols={},
                 decision=None,
                 fatal_errors=1,
+                error_class_counts={"LOOP": 1},
+                last_error_code="LOOP",
+                terminal_reason="LOOP",
+                degrade_stage=0,
+                healthy_windows=0,
             ).to_dict()
         )
         print(f"[worker:{cfg.worker_id}] FATAL: {type(exc).__name__}: {exc}")

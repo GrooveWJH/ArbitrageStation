@@ -5,6 +5,13 @@ from multiprocessing import Event
 from multiprocessing.process import BaseProcess
 
 
+def _live_timestamp(now_ts: float | None = None) -> str:
+    ts = time.time() if now_ts is None else now_ts
+    lt = time.localtime(ts)
+    tenth = int((ts - int(ts)) * 10)
+    return f"{time.strftime('%H:%M:%S', lt)}.{tenth}"
+
+
 def build_progress_line(latest: dict[str, dict], alive_workers: int, total_workers: int, peak_bw_mbps: float) -> str:
     reported_workers = len(latest)
     if not latest:
@@ -16,6 +23,15 @@ def build_progress_line(latest: dict[str, dict], alive_workers: int, total_worke
     total_events = sum(int(m.get("total_events", 0)) for m in latest.values())
     total_bw = sum(float(m.get("bw_mbps", 0.0)) for m in latest.values())
     min_p95 = min(float(m.get("hz_p95", 0.0)) for m in latest.values())
+    restarts = sum(int(m.get("restart_count", 0)) for m in latest.values())
+    err_counts: dict[str, int] = {}
+    for metric in latest.values():
+        raw = metric.get("error_class_counts", {})
+        if not isinstance(raw, dict):
+            continue
+        for code, value in raw.items():
+            err_counts[str(code)] = err_counts.get(str(code), 0) + int(value)
+    err_summary = ",".join(f"{k}:{v}" for k, v in sorted(err_counts.items()) if v > 0) or "--"
     degraded = [
         wid
         for wid, m in latest.items()
@@ -24,13 +40,15 @@ def build_progress_line(latest: dict[str, dict], alive_workers: int, total_worke
     return (
         f"运行中: workers_alive={alive_workers}/{total_workers} "
         f"reported={reported_workers}/{total_workers} events={total_events} bw_mbps={total_bw:.3f} "
-        f"peak_bw_mbps={peak_bw_mbps:.3f} min_hz_p95={min_p95:.2f} degraded={degraded or '--'}"
+        f"peak_bw_mbps={peak_bw_mbps:.3f} min_hz_p95={min_p95:.2f} restarts={restarts} "
+        f"errors={err_summary} degraded={degraded or '--'}"
     )
 
 
 def draw_live_line(line: str, prev_len: int) -> int:
-    width = max(prev_len, len(line))
-    print("\r" + line.ljust(width), end="", flush=True)
+    rendered = f"{_live_timestamp()} | {line}"
+    width = max(prev_len, len(rendered))
+    print("\r" + rendered.ljust(width), end="", flush=True)
     return width
 
 

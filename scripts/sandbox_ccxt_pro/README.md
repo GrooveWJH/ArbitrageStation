@@ -54,6 +54,34 @@ python3 scripts/sandbox_ccxt_pro/cli/symbol_intersection.py \
   --exchanges binance okx gate mexc \
   --json \
   --out scripts/sandbox_ccxt_pro/data/symbols_intersection.json
+
+# 双交集分组（每组独立求交集）
+python3 scripts/sandbox_ccxt_pro/cli/symbol_intersection.py \
+  --pair "binance&&okx" \
+  --pair "gate&&mexc" \
+  --json \
+  --out scripts/sandbox_ccxt_pro/data/symbols_intersection.json
+```
+
+`symbols_intersection.json` 已升级为扁平 `v3`：
+
+```json
+{
+  "schema_version": 3,
+  "generated_at": "...",
+  "mode": "single_group|grouped",
+  "groups": [
+    {
+      "id": "all_4|pair_xxx",
+      "exchanges": ["binance", "okx"],
+      "symbols": ["BTC/USDT", "ETH/USDT"]
+    }
+  ],
+  "meta": {
+    "group_count": 1,
+    "symbol_counts": {"all_4": 160}
+  }
+}
 ```
 
 每 10 分钟扫描一次交集（空闲期带进度条）：
@@ -70,17 +98,42 @@ python3 scripts/sandbox_ccxt_pro/cli/binance_book_bandwidth.py
 # 四个交易所同时启动（基于 data/symbols_intersection.json）
 python3 scripts/sandbox_ccxt_pro/cli/binance_book_bandwidth.py --all
 
-# 关键参数：目标频率、分片、平滑启动、自适应重平衡、快照策略
+# 常用基础参数：symbols 文件、运行时长、交易所/市场、目标频率、输出文件
 python3 scripts/sandbox_ccxt_pro/cli/binance_book_bandwidth.py --all \
+  --symbols-file scripts/sandbox_ccxt_pro/data/symbols_intersection.json \
+  --duration 40 \
+  --max-wait 60 \
+  --market both \
   --target-hz 2.0 \
-  --shards-per-exchange-market 4 \
-  --exchange-profile balanced \
-  --snapshot-mode hybrid \
-  --refresh-hz 5 \
-  --rebalance-cooldown-sec 30 \
-  --adaptive-rebalance \
-  --window-sec 10
+  --metrics-out scripts/sandbox_ccxt_pro/data/metrics_snapshot.json
 ```
+
+24x7 常驻服务（SQLite + HTTP + WebSocket）：
+
+```bash
+# 默认四所、spot+futures、写入 sqlite、对外提供本地 API
+python3 scripts/sandbox_ccxt_pro/cli/marketdata_service.py serve
+
+# 常见参数示例
+python3 scripts/sandbox_ccxt_pro/cli/marketdata_service.py serve \
+  --all \
+  --market both \
+  --target-hz 2.0 \
+  --db-path scripts/sandbox_ccxt_pro/data/marketdata.sqlite3 \
+  --metrics-out scripts/sandbox_ccxt_pro/data/metrics_snapshot.json
+
+# 仅运行压缩维护循环
+python3 scripts/sandbox_ccxt_pro/cli/marketdata_service.py compact-only
+```
+
+本地 API（默认 `127.0.0.1:18777`）：
+
+- `GET /v1/health`
+- `GET /v1/stats`
+- `GET /v1/latest?exchange=&market=&symbol=&limit=`
+- `GET /v1/series?exchange=binance&market=spot&symbol=BTC/USDT&resolution=raw&from_ms=...&to_ms=...`
+- `GET /v1/symbols`
+- `WS /ws/quotes?exchange=&market=&symbol=`
 
 运行中会持续写出实时健康快照：
 

@@ -40,49 +40,29 @@ def run(
         typer.Option(help="single exchange when --all is not set"),
     ] = "binance",
     market: Annotated[MarketName, typer.Option(help="market selector")] = "both",
-    order_book_limit: Annotated[int, typer.Option(help="orderbook depth")] = 5,
-    progress_interval: Annotated[int, typer.Option(help="fallback progress print interval seconds (non-live mode)")] = 5,
-    refresh_hz: Annotated[float, typer.Option(help="live refresh rate in Hz")] = 5.0,
-    live_refresh: Annotated[bool, typer.Option("--live-refresh/--no-live-refresh", help="render progress by in-place refresh")] = True,
     target_hz: Annotated[float, typer.Option(help="target hz per exchange/symbol/market")] = 2.0,
-    shards_per_exchange_market: Annotated[
-        int,
-        typer.Option(help="initial shard count per exchange+market worker"),
-    ] = 4,
-    batch_size: Annotated[
-        int | None,
-        typer.Option(help="startup batch size override; default uses exchange profile"),
-    ] = None,
-    batch_delay_ms: Annotated[
-        int | None,
-        typer.Option(help="startup batch delay override(ms); default uses exchange profile"),
-    ] = None,
-    adaptive_rebalance: Annotated[
-        bool,
-        typer.Option("--adaptive-rebalance/--no-adaptive-rebalance", help="enable adaptive split/merge and degradation chain"),
-    ] = True,
-    window_sec: Annotated[int, typer.Option(help="rolling metrics window seconds")] = 10,
     metrics_out: Annotated[str, typer.Option(help="output snapshot json path")] = "scripts/sandbox_ccxt_pro/data/metrics_snapshot.json",
-    snapshot_mode: Annotated[SnapshotMode, typer.Option(help="metrics snapshot write strategy")] = "hybrid",
-    rebalance_cooldown_sec: Annotated[int, typer.Option(help="minimum seconds between split/merge decisions")] = 30,
-    exchange_profile: Annotated[ExchangeProfile, typer.Option(help="exchange tuning profile")] = "balanced",
 ) -> None:
-    if shards_per_exchange_market <= 0:
-        raise typer.BadParameter("must be > 0", param_hint="--shards-per-exchange-market")
-    if batch_size is not None and batch_size <= 0:
-        raise typer.BadParameter("must be > 0", param_hint="--batch-size")
-    if batch_delay_ms is not None and batch_delay_ms < 0:
-        raise typer.BadParameter("must be >= 0", param_hint="--batch-delay-ms")
     if target_hz <= 0:
         raise typer.BadParameter("must be > 0", param_hint="--target-hz")
-    if window_sec <= 0:
-        raise typer.BadParameter("must be > 0", param_hint="--window-sec")
-    if progress_interval <= 0:
-        raise typer.BadParameter("must be > 0", param_hint="--progress-interval")
-    if refresh_hz <= 0:
-        raise typer.BadParameter("must be > 0", param_hint="--refresh-hz")
-    if rebalance_cooldown_sec < 0:
-        raise typer.BadParameter("must be >= 0", param_hint="--rebalance-cooldown-sec")
+
+    # Keep CLI minimal: advanced tuning values are fixed here.
+    order_book_limit = 5
+    progress_interval = 5
+    refresh_hz = 5.0
+    live_refresh = True
+    shards_per_exchange_market = 4
+    batch_size = None
+    batch_delay_ms = None
+    adaptive_rebalance = True
+    window_sec = 10
+    snapshot_mode: SnapshotMode = "hybrid"
+    rebalance_cooldown_sec = 30
+    exchange_profile: ExchangeProfile = "balanced"
+    queue_poll_ms = 50
+    health_recover_windows = 3
+    restart_window_sec = 300
+    restart_budget = 8
 
     args = SupervisorArgs(
         symbols_file=symbols_file,
@@ -105,6 +85,10 @@ def run(
         snapshot_mode=snapshot_mode,
         rebalance_cooldown_sec=rebalance_cooldown_sec,
         exchange_profile=exchange_profile,
+        queue_poll_ms=queue_poll_ms,
+        restart_window_sec=restart_window_sec,
+        restart_budget=restart_budget,
+        health_recover_windows=health_recover_windows,
     )
     raise typer.Exit(run_supervisor(args))
 

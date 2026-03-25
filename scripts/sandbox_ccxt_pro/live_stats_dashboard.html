@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Marketdata Service 实时看板</title>
+  <style>
+    :root {
+      --bg: #04122b;
+      --panel: #081d3a;
+      --panel-2: #0d2a53;
+      --text: #dce8ff;
+      --muted: #90a8d8;
+      --ok: #39d98a;
+      --warn: #ffcc66;
+      --err: #ff6b6b;
+      --accent: #5bc0ff;
+      --border: #18427a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 20% 0%, #0a2a5a 0%, var(--bg) 45%);
+      color: var(--text);
+      font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+    .wrap {
+      width: min(2200px, 99vw);
+      max-width: 2200px;
+      margin: 0 auto;
+      padding: 16px 18px 24px;
+    }
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+    .sub {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+    .ctrl {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .ctrl select, .ctrl button, .ctrl input {
+      background: #082140;
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px 9px;
+      font-size: 12px;
+    }
+    .grid {
+      display: grid;
+      gap: 10px;
+    }
+    .kpi {
+      grid-template-columns: repeat(9, minmax(165px, 1fr));
+      margin-bottom: 10px;
+    }
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 84px;
+    }
+    .label {
+      color: var(--muted);
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .value {
+      margin-top: 8px;
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1.1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hint {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .section {
+      margin-top: 10px;
+      display: grid;
+      gap: 10px;
+      grid-template-columns: 1.4fr 1fr;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      overflow: hidden;
+    }
+    .panel h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #c7dbff;
+    }
+    .rows {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      font-size: 13px;
+      align-items: center;
+    }
+    .rows .k { color: var(--muted); }
+    .rows .v { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .trend {
+      margin-top: 10px;
+      border: 1px solid #153a6c;
+      border-radius: 8px;
+      background: #061a34;
+      height: 120px;
+      position: relative;
+      overflow: hidden;
+    }
+    .trend svg { width: 100%; height: 100%; display: block; }
+    .legend {
+      margin-top: 6px;
+      display: flex;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 99px; display: inline-block; margin-right: 5px; }
+    .dot-a { background: var(--accent); }
+    .dot-b { background: var(--ok); }
+    .dot-c { background: #ff8ad8; }
+
+    .bars { display: grid; gap: 7px; margin-top: 8px; }
+    .bar-row { display: grid; grid-template-columns: 120px 1fr 60px; gap: 8px; align-items: center; font-size: 12px; }
+    .bar-track { background: #102a4f; border-radius: 999px; height: 8px; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, #4fb8ff, #86e0ff); }
+    .bar-fill.warn { background: linear-gradient(90deg, #ffb84d, #ffd27d); }
+    .bar-fill.err { background: linear-gradient(90deg, #ff7777, #ffaaaa); }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      margin-top: 8px;
+    }
+    th, td {
+      border-bottom: 1px solid #173c70;
+      padding: 7px 6px;
+      text-align: left;
+      white-space: nowrap;
+    }
+    th { color: #adc6f0; font-weight: 600; font-size: 11px; }
+    td { color: #dbe7ff; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .status-ok { color: var(--ok); }
+    .status-warn { color: var(--warn); }
+    .status-err { color: var(--err); }
+    .foot {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    @media (max-width: 1200px) {
+      .kpi { grid-template-columns: repeat(3, minmax(160px, 1fr)); }
+      .section { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="title">Marketdata Service 实时看板</div>
+        <div class="sub" id="subtitle">等待首次数据...</div>
+      </div>
+      <div class="ctrl">
+        <label>API: <input id="api" size="34" value="http://127.0.0.1:18777/v1/stats" /></label>
+        <label>刷新:
+          <select id="interval">
+            <option value="500">0.5s</option>
+            <option value="1000" selected>1s</option>
+            <option value="2000">2s</option>
+            <option value="5000">5s</option>
+          </select>
+        </label>
+        <button id="toggle">暂停</button>
+        <button id="refreshNow">立即刷新</button>
+      </div>
+    </div>
+
+    <div class="grid kpi">
+      <div class="card"><div class="label">累计事件</div><div class="value" id="kpiEvents">-</div><div class="hint">total_events</div></div>
+      <div class="card"><div class="label">Wire 当前带宽</div><div class="value" id="kpiWire">-</div><div class="hint">wire_mbps_est</div></div>
+      <div class="card"><div class="label">运行时长</div><div class="value" id="kpiRun">-</div><div class="hint">run_elapsed_sec</div></div>
+      <div class="card"><div class="label">Broker P95 提交</div><div class="value" id="kpiCommit">-</div><div class="hint">broker_commit_p95_ms</div></div>
+      <div class="card"><div class="label">队列峰值</div><div class="value" id="kpiQueue">-</div><div class="hint">writer/broker</div></div>
+      <div class="card"><div class="label">就绪 Worker</div><div class="value" id="kpiWorkers">-</div><div class="hint">workers_view</div></div>
+      <div class="card"><div class="label">当前内存</div><div class="value" id="kpiMemCur">-</div><div class="hint">memory_current_mb</div></div>
+      <div class="card"><div class="label">平均内存</div><div class="value" id="kpiMemAvg">-</div><div class="hint">memory_avg_mb</div></div>
+      <div class="card"><div class="label">峰值内存</div><div class="value" id="kpiMemPeak">-</div><div class="hint">memory_peak_mb</div></div>
+    </div>
+
+    <div class="section">
+      <div class="panel">
+        <h3>实时趋势</h3>
+        <div class="rows">
+          <div class="k">写入滞后</div><div class="v" id="lag">-</div>
+          <div class="k">API 读降级命中</div><div class="v" id="fallback">-</div>
+          <div class="k">Compaction</div><div class="v" id="compact">-</div>
+        </div>
+        <div class="trend"><svg id="trendSvg" viewBox="0 0 1000 220" preserveAspectRatio="none"></svg></div>
+        <div class="legend">
+          <span><i class="dot dot-a"></i>Wire Mbps</span>
+          <span><i class="dot dot-b"></i>事件速率 eps</span>
+          <span><i class="dot dot-c"></i>提交 P95 ms</span>
+          <span><i class="dot" style="background:#ffc46b"></i>内存 MB</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>核心状态</h3>
+        <div class="rows">
+          <div class="k">Collector</div><div class="v" id="collector">-</div>
+          <div class="k">Broker</div><div class="v" id="broker">-</div>
+          <div class="k">DB 大小</div><div class="v" id="dbSize">-</div>
+          <div class="k">WAL 大小</div><div class="v" id="walSize">-</div>
+          <div class="k">任务计数</div><div class="v" id="tasks">-</div>
+          <div class="k">错误计数</div><div class="v" id="errors">-</div>
+        </div>
+
+        <h3 style="margin-top:12px">按交易所覆盖率</h3>
+        <div class="bars" id="coverageBars"></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="panel">
+        <h3>Worker 明细</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Worker</th><th>状态</th><th>活跃Symbols</th><th>hz_p50</th><th>hz_p95</th><th>app_mbps</th><th>wire_mbps</th><th>events</th><th>errors</th><th>reconnects</th><th>覆盖</th>
+            </tr>
+          </thead>
+          <tbody id="workerRows"></tbody>
+        </table>
+      </div>
+
+      <div class="panel">
+        <h3>错误与恢复</h3>
+        <table>
+          <thead><tr><th>错误类型</th><th>次数</th></tr></thead>
+          <tbody id="errorRows"></tbody>
+        </table>
+
+        <h3 style="margin-top:12px">系统提示</h3>
+        <div id="insights" class="rows"></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <div>页面每次拉取 <span class="mono">/v1/stats</span> 并仅渲染内存数据，不写回服务端。</div>
+      <div id="lastUpdate">last_update: -</div>
+    </div>
+  </div>
+
+  <script>
+    const state = {
+      timer: null,
+      paused: false,
+      lastEvents: null,
+      lastTs: null,
+      hist: []
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const fmtInt = (n) => Number(n || 0).toLocaleString();
+    const fmt2 = (n) => Number(n || 0).toFixed(2);
+    const fmtPct = (n) => `${fmt2(n)}%`;
+    const fmtMB = (b) => `${fmt2((Number(b || 0) / (1024 * 1024)))} MB`;
+    const fmtSec = (s) => `${fmt2(s)}s`;
+
+    function statusClass(s) {
+      const v = String(s || '').toLowerCase();
+      if (v.includes('run') || v.includes('ready')) return 'status-ok';
+      if (v.includes('warm') || v.includes('degrad')) return 'status-warn';
+      return 'status-err';
+    }
+
+    function pushHist(point) {
+      state.hist.push(point);
+      if (state.hist.length > 180) state.hist.shift();
+    }
+
+    function linePath(arr, key, min, max) {
+      if (!arr.length) return '';
+      const w = 1000, h = 220;
+      const dx = arr.length > 1 ? w / (arr.length - 1) : 0;
+      return arr.map((p, i) => {
+        const x = i * dx;
+        const v = Number(p[key] || 0);
+        const y = h - ((v - min) / Math.max(1e-9, max - min)) * h;
+        return `${i ? 'L' : 'M'}${x.toFixed(2)},${Math.max(0, Math.min(h, y)).toFixed(2)}`;
+      }).join(' ');
+    }
+
+    function renderTrend() {
+      const svg = $('trendSvg');
+      const arr = state.hist;
+      if (!arr.length) { svg.innerHTML = ''; return; }
+
+      const wireMax = Math.max(...arr.map(x => x.wire), 1);
+      const epsMax = Math.max(...arr.map(x => x.eps), 1);
+      const cMax = Math.max(...arr.map(x => x.commit), 1);
+      const mMax = Math.max(...arr.map(x => x.mem), 1);
+
+      const pathWire = linePath(arr, 'wire', 0, wireMax);
+      const pathEps = linePath(arr, 'eps', 0, epsMax);
+      const pathCommit = linePath(arr, 'commit', 0, cMax);
+      const pathMem = linePath(arr, 'mem', 0, mMax);
+
+      svg.innerHTML = `
+        <defs>
+          <linearGradient id="g1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5bc0ff" stop-opacity="0.35" />
+            <stop offset="100%" stop-color="#5bc0ff" stop-opacity="0.03" />
+          </linearGradient>
+        </defs>
+        <path d="${pathWire} L1000,220 L0,220 Z" fill="url(#g1)" />
+        <path d="${pathWire}" fill="none" stroke="#5bc0ff" stroke-width="2" />
+        <path d="${pathEps}" fill="none" stroke="#39d98a" stroke-width="2" />
+        <path d="${pathCommit}" fill="none" stroke="#ff8ad8" stroke-width="2" />
+        <path d="${pathMem}" fill="none" stroke="#ffc46b" stroke-width="2" />
+      `;
+    }
+
+    function renderCoverage(workers) {
+      const byEx = {};
+      Object.values(workers || {}).forEach(w => {
+        const ex = w.exchange || 'unknown';
+        const total = Number(w.symbol_count_total || 0);
+        const ok = Number(w.symbol_count_with_data || 0);
+        if (!byEx[ex]) byEx[ex] = { ok: 0, total: 0 };
+        byEx[ex].ok += ok;
+        byEx[ex].total += total;
+      });
+      const rows = Object.entries(byEx).map(([ex, v]) => {
+        const pct = v.total ? (v.ok / v.total * 100) : 0;
+        const cls = pct >= 95 ? '' : (pct >= 70 ? 'warn' : 'err');
+        return `
+          <div class="bar-row">
+            <div>${ex.toUpperCase()}</div>
+            <div class="bar-track"><div class="bar-fill ${cls}" style="width:${Math.max(1,pct)}%"></div></div>
+            <div class="mono">${fmt2(pct)}%</div>
+          </div>
+        `;
+      }).join('');
+      $('coverageBars').innerHTML = rows || '<div class="hint">暂无数据</div>';
+    }
+
+    function renderWorkers(workers) {
+      const list = Object.values(workers || {}).sort((a, b) => String(a.worker_id || '').localeCompare(String(b.worker_id || '')));
+      $('workerRows').innerHTML = list.map(w => {
+        const cov = Number(w.symbol_count_total||0) ? (Number(w.symbol_count_with_data||0) / Number(w.symbol_count_total||0) * 100) : 0;
+        return `
+          <tr>
+            <td class="mono">${w.worker_id}</td>
+            <td class="${statusClass(w.status)}">${w.status}</td>
+            <td class="mono">${fmtInt(w.symbol_count_with_data)}/${fmtInt(w.symbol_count_total)}</td>
+            <td class="mono">${fmt2(w.hz_p50)}</td>
+            <td class="mono">${fmt2(w.hz_p95)}</td>
+            <td class="mono">${fmt2(w.bw_mbps)}</td>
+            <td class="mono">${fmt2(w.wire_mbps_est)}</td>
+            <td class="mono">${fmtInt(w.total_events)}</td>
+            <td class="mono">${fmtInt(w.total_errors)}</td>
+            <td class="mono">${fmtInt(w.total_reconnects)}</td>
+            <td class="mono">${fmt2(cov)}%</td>
+          </tr>
+        `;
+      }).join('') || '<tr><td colspan="11" class="hint">暂无 worker 数据</td></tr>';
+    }
+
+    function renderErrors(errorCounts) {
+      const items = Object.entries(errorCounts || {}).sort((a,b)=>Number(b[1])-Number(a[1]));
+      $('errorRows').innerHTML = (items.length ? items : [['NONE', 0]]).map(([k,v]) => `
+        <tr><td class="mono">${k}</td><td class="mono">${fmtInt(v)}</td></tr>
+      `).join('');
+    }
+
+    function renderInsights(g, workers) {
+      const arr = Object.values(workers || {});
+      const byLowHz = [...arr].sort((a,b)=>Number(a.hz_p95||0)-Number(b.hz_p95||0))[0];
+      const byNoData = [...arr].sort((a,b)=>Number(b.symbol_count_no_data||0)-Number(a.symbol_count_no_data||0))[0];
+      const byErr = [...arr].sort((a,b)=>Number(b.total_errors||0)-Number(a.total_errors||0))[0];
+      const lines = [
+        ['最弱频率', byLowHz ? `${byLowHz.worker_id} / hz_p95=${fmt2(byLowHz.hz_p95)}` : '-'],
+        ['覆盖短板', byNoData ? `${byNoData.worker_id} / no_data=${fmtInt(byNoData.symbol_count_no_data)}` : '-'],
+        ['错误最高', byErr ? `${byErr.worker_id} / errors=${fmtInt(byErr.total_errors)}` : '-'],
+        ['当前带宽', `wire=${fmt2(g.wire_mbps_est)} Mbps`],
+        ['API降级', `${fmtInt(g.api_read_fallback_hits)} 次 / busy重试 ${fmtInt(g.api_read_busy_retries)} 次`]
+      ];
+      $('insights').innerHTML = lines.map(([k,v]) => `<div class="k">${k}</div><div class="v mono">${v}</div>`).join('');
+    }
+
+    function render(payload) {
+      const g = payload?.global || {};
+      const workers = payload?.workers || g?.workers || {};
+
+      const now = Date.now();
+      let eps = 0;
+      const curEvents = Number(g.total_events || 0);
+      if (state.lastEvents !== null && state.lastTs) {
+        const dt = Math.max(1e-3, (now - state.lastTs) / 1000);
+        eps = Math.max(0, (curEvents - state.lastEvents) / dt);
+      }
+      state.lastEvents = curEvents;
+      state.lastTs = now;
+
+      pushHist({
+        t: now,
+        eps,
+        commit: Number(g.broker_commit_p95_ms || 0),
+        mem: Number(g.memory_current_mb || 0),
+        wire: Number(g.wire_mbps_est || 0)
+      });
+
+      $('kpiEvents').textContent = fmtInt(g.total_events);
+      $('kpiWire').textContent = `${fmt2(g.wire_mbps_est)} Mbps`;
+      $('kpiRun').textContent = fmtSec(g.run_elapsed_sec);
+      $('kpiCommit').textContent = `${fmt2(g.broker_commit_p95_ms)} ms`;
+      $('kpiQueue').textContent = `${fmtInt(g.queue_peak)} / ${fmtInt(g.broker_queue_peak)}`;
+      $('kpiWorkers').textContent = `${g.workers_view?.up_workers_total || 0}/${g.workers_view?.expected_workers_total || 0}`;
+      $('kpiMemCur').textContent = `${fmt2(g.memory_current_mb)} MB`;
+      $('kpiMemAvg').textContent = `${fmt2(g.memory_avg_mb)} MB`;
+      $('kpiMemPeak').textContent = `${fmt2(g.memory_peak_mb)} MB`;
+
+      const collectorState = payload?.collector_boot_state || (g?.boot_progress?.full_ready ? 'ready' : 'warming');
+      $('collector').innerHTML = `<span class="${statusClass(collectorState)}">${collectorState}</span>`;
+      $('broker').innerHTML = `<span class="${statusClass(g.broker_state)}">${g.broker_state}</span> / fail=${fmtInt(g.broker_consecutive_failures)}`;
+      $('dbSize').textContent = fmtMB(g.db?.db_bytes || g.db_bytes);
+      $('walSize').textContent = fmtMB(g.db?.wal_bytes || g.wal_bytes);
+      const tc = g.task_counts_by_type || {};
+      $('tasks').textContent = `quotes=${fmtInt(tc.WRITE_QUOTES)} stats=${fmtInt(tc.WRITE_WORKER_STATS)} compact=${fmtInt(tc.COMPACT_CHUNK)}`;
+      $('errors').textContent = JSON.stringify(g.broker_error_class_counts || {});
+
+      $('lag').textContent = `${fmt2(g.staleness_sec)}s`;
+      $('fallback').textContent = `hit=${fmtInt(g.api_read_fallback_hits)} retry=${fmtInt(g.api_read_busy_retries)}`;
+      $('compact').textContent = `${g.compaction_mode || '-'} / ${fmtInt(g.compaction_rows_processed)} rows / ${fmt2(g.compaction_last_duration_ms)}ms`;
+
+      renderCoverage(workers);
+      renderWorkers(workers);
+      renderErrors(g.broker_error_class_counts || {});
+      renderInsights(g, workers);
+      renderTrend();
+
+      const t = new Date();
+      $('lastUpdate').textContent = `last_update: ${t.toLocaleString()} / hist=${state.hist.length}`;
+      $('subtitle').textContent = `snapshot: ${payload.generated_at || '-'} | state=${payload.collector_boot_state || '-'} | workers=${g.workers_view?.up_workers_total || 0}/${g.workers_view?.expected_workers_total || 0}`;
+    }
+
+    async function pull() {
+      if (state.paused) return;
+      const url = $('api').value.trim();
+      try {
+        const res = await fetch(url, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        render(data);
+      } catch (err) {
+        $('subtitle').textContent = `拉取失败: ${err?.message || err}`;
+      }
+    }
+
+    function restartTimer() {
+      if (state.timer) clearInterval(state.timer);
+      const ms = Number($('interval').value || 1000);
+      state.timer = setInterval(pull, Math.max(300, ms));
+    }
+
+    $('toggle').addEventListener('click', () => {
+      state.paused = !state.paused;
+      $('toggle').textContent = state.paused ? '继续' : '暂停';
+      if (!state.paused) pull();
+    });
+    $('refreshNow').addEventListener('click', pull);
+    $('interval').addEventListener('change', restartTimer);
+
+    restartTimer();
+    pull();
+  </script>
+</body>
+</html>
