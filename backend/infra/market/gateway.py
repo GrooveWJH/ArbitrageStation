@@ -1,6 +1,10 @@
 """Market data capability gateway."""
 
 from core import data_collector as _legacy
+from infra.market.read_provider import (
+    get_market_read_status,
+    verify_market_read_ready,
+)
 
 
 collect_funding_rates = _legacy.collect_funding_rates
@@ -25,9 +29,11 @@ __all__ = [
     "fetch_spot_volumes",
     "fetch_ticker",
     "fetch_volumes",
+    "get_market_read_status",
     "funding_rate_cache",
     "get_cached_exchange_map",
     "get_latest_rates_flat",
+    "verify_market_read_ready",
     "get_spread_stats_cache",
     "update_fast_prices",
     "update_position_prices",

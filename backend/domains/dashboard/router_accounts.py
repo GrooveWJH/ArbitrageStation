@@ -47,10 +47,12 @@ def _parse_assets_from_ccxt_balance(balance: dict) -> list[dict]:
 
 def _fetch_exchange_overview(ex: Exchange) -> dict:
     is_unified = resolve_is_unified_account(ex)
+    has_trading_api = bool(str(ex.api_key or "").strip() and str(ex.api_secret or "").strip())
     item = {
         "exchange_id": ex.id,
         "exchange_name": ex.display_name or ex.name,
         "unified_account": is_unified,
+        "trading_api_configured": has_trading_api,
         "total_usdt": 0.0,
         "spot_usdt": 0.0,
         "futures_usdt": 0.0,
@@ -69,52 +71,55 @@ def _fetch_exchange_overview(ex: Exchange) -> dict:
     futures_err = None
     spot_err = None
 
-    try:
-        swap_inst = get_instance(ex)
-        if swap_inst:
-            bal = swap_inst.fetch_balance()
-            futures_balance_snapshot = bal or {}
-            bal_usdt = round(extract_usdt_balance(ex.name, bal), 4)
-            futures_ok = True
-
-            if is_unified:
-                item["total_usdt"] = bal_usdt
-                item["spot_assets"] = _parse_assets_from_ccxt_balance(bal)
-            else:
-                item["futures_usdt"] = bal_usdt
-
-            if swap_inst.has.get("fetchPositions"):
-                for pos in swap_inst.fetch_positions():
-                    contracts = float(pos.get("contracts") or 0)
-                    if contracts <= 0:
-                        continue
-                    item["positions"].append(
-                        {
-                            "symbol": pos.get("symbol", ""),
-                            "side": pos.get("side", ""),
-                            "position_type": "swap",
-                            "contracts": contracts,
-                            "notional": round(float(pos.get("notional") or 0), 2),
-                            "entry_price": round(float(pos.get("entryPrice") or 0), 4),
-                            "mark_price": round(float(pos.get("markPrice") or 0), 4),
-                            "unrealized_pnl": round(float(pos.get("unrealizedPnl") or 0), 4),
-                            "leverage": pos.get("leverage"),
-                        }
-                    )
-    except Exception as exc:
-        futures_err = str(exc)
-
-    if not is_unified:
+    if has_trading_api:
         try:
-            spot_bal = fetch_spot_balance_safe(ex)
-            if spot_bal:
-                spot_balance_snapshot = spot_bal
-                spot_ok = True
-                usdt_s = spot_bal.get("USDT") or {}
-                item["spot_usdt"] = round(float(usdt_s.get("total") or usdt_s.get("free") or 0), 4)
-                item["spot_assets"] = _parse_assets_from_ccxt_balance(spot_bal)
+            swap_inst = get_instance(ex)
+            if swap_inst:
+                bal = swap_inst.fetch_balance()
+                futures_balance_snapshot = bal or {}
+                bal_usdt = round(extract_usdt_balance(ex.name, bal), 4)
+                futures_ok = True
+
+                if is_unified:
+                    item["total_usdt"] = bal_usdt
+                    item["spot_assets"] = _parse_assets_from_ccxt_balance(bal)
+                else:
+                    item["futures_usdt"] = bal_usdt
+
+                if swap_inst.has.get("fetchPositions"):
+                    for pos in swap_inst.fetch_positions():
+                        contracts = float(pos.get("contracts") or 0)
+                        if contracts <= 0:
+                            continue
+                        item["positions"].append(
+                            {
+                                "symbol": pos.get("symbol", ""),
+                                "side": pos.get("side", ""),
+                                "position_type": "swap",
+                                "contracts": contracts,
+                                "notional": round(float(pos.get("notional") or 0), 2),
+                                "entry_price": round(float(pos.get("entryPrice") or 0), 4),
+                                "mark_price": round(float(pos.get("markPrice") or 0), 4),
+                                "unrealized_pnl": round(float(pos.get("unrealizedPnl") or 0), 4),
+                                "leverage": pos.get("leverage"),
+                            }
+                        )
         except Exception as exc:
-            spot_err = str(exc)
+            futures_err = str(exc)
+
+        if not is_unified:
+            try:
+                spot_bal = fetch_spot_balance_safe(ex)
+                if spot_bal:
+                    spot_balance_snapshot = spot_bal
+                    spot_ok = True
+                    usdt_s = spot_bal.get("USDT") or {}
+                    item["spot_usdt"] = round(float(usdt_s.get("total") or usdt_s.get("free") or 0), 4)
+                    item["spot_assets"] = _parse_assets_from_ccxt_balance(spot_bal)
+            except Exception as exc:
+                spot_err = str(exc)
+    else:
+        item["warning"] = "未配置交易账户 API（机会展示不受影响）"
 
     db2 = SessionLocal()
     try:
@@ -152,7 +157,9 @@ def _fetch_exchange_overview(ex: Exchange) -> dict:
     finally:
         db2.close()
 
-    if is_unified:
+    if not has_trading_api:
+        pass
+    elif is_unified:
         if not futures_ok and futures_err:
             item["error"] = futures_err[:200]
     elif not futures_ok and not spot_ok:
@@ -239,6 +246,7 @@ def get_account_overview(db: Session = Depends(get_db)):
                 results[idx] = {
                     "exchange_id": ex.id,
                     "exchange_name": ex.display_name or ex.name,
+                    "trading_api_configured": bool(str(ex.api_key or "").strip() and str(ex.api_secret or "").strip()),
                     "error": str(exc)[:200],
                     "positions": [],
                     "spot_assets": [],

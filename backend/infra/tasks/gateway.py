@@ -3,7 +3,12 @@
 from infra.pnl_v2.gateway import run_daily_reconcile_job
 from infra.spot_basis_auto.gateway import run_spot_basis_auto_open_cycle, run_spot_basis_reconcile_cycle
 from infra.spot_basis_data.gateway import schedule_collect_recent_snapshots, schedule_daily_universe_freeze
-from core.data_collector import collect_funding_rates, update_position_prices
+from core.data_collector import (
+    collect_funding_rates,
+    sync_market_opportunity_inputs,
+    sync_market_volume_cache,
+    update_position_prices,
+)
 from core.equity_collector import collect_equity_snapshot
 from core.exchange_manager import resync_time_differences
 from core.funding_ledger import run_funding_ingest_cycle
@@ -19,6 +24,8 @@ def run_daily_pnl_v2_reconcile_job():
 
 __all__ = [
     "collect_funding_rates",
+    "sync_market_volume_cache",
+    "sync_market_opportunity_inputs",
     "update_position_prices",
     "refresh_spread_stats",
     "run_risk_checks",

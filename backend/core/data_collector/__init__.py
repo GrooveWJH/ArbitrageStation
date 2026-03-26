@@ -1,6 +1,6 @@
 """Explicit package exports (static, no dynamic section aggregation)."""
 
-from .market_prices import (
+from .funding_collect import (
     Exchange,
     FundingRate,
     Position,
@@ -16,6 +16,9 @@ from .market_prices import (
     _volume_cache_ts,
     as_completed,
     collect_funding_rates,
+    sync_market_funding_cache,
+    sync_market_volume_cache,
+    sync_market_opportunity_inputs,
     date,
     datetime,
     exchange_map_cache,
@@ -34,17 +37,20 @@ from .market_prices import (
     logging,
     spot_fast_price_cache,
     spot_volume_cache,
+    opportunity_input_cache,
     spread_stats_cache,
     time,
     timedelta,
     timezone,
     utc_now,
     volume_cache,
-    update_position_prices,
-    get_latest_rates_flat,
-    _fetch_tickers_for_exchange,
+)
+from .market_prices import (
     _fetch_spot_tickers_for_exchange,
+    _fetch_tickers_for_exchange,
+    get_latest_rates_flat,
     update_fast_prices,
+    update_position_prices,
 )
 
 __all__ = [
@@ -63,6 +69,9 @@ __all__ = [
     "_volume_cache_ts",
     "as_completed",
     "collect_funding_rates",
+    "sync_market_funding_cache",
+    "sync_market_volume_cache",
+    "sync_market_opportunity_inputs",
     "date",
     "datetime",
     "exchange_map_cache",
@@ -81,6 +90,7 @@ __all__ = [
     "logging",
     "spot_fast_price_cache",
     "spot_volume_cache",
+    "opportunity_input_cache",
     "spread_stats_cache",
     "time",
     "timedelta",

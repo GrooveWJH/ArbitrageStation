@@ -197,8 +197,7 @@ def fetch_exchange_total_equity_usdt(exchange: Exchange) -> float:
     For split exchanges: sum spot-account token value and futures-account token value.
     """
     try:
-        from . import strategy_row as _part2_mod
-        from . import reconcile_core as _part3_mod
+        from . import fetch_spot_balance_safe, get_instance, get_spot_instance
 
         unified = bool(getattr(exchange, "is_unified_account", None))
         if getattr(exchange, "is_unified_account", None) is None:
@@ -208,8 +207,8 @@ def fetch_exchange_total_equity_usdt(exchange: Exchange) -> float:
             except Exception:
                 unified = False
 
-        spot_inst = _part2_mod.get_spot_instance(exchange)
-        swap_inst = _part2_mod.get_instance(exchange)
+        spot_inst = get_spot_instance(exchange)
+        swap_inst = get_instance(exchange)
 
         if unified:
             if not swap_inst:
@@ -225,7 +224,7 @@ def fetch_exchange_total_equity_usdt(exchange: Exchange) -> float:
 
         total = 0.0
         try:
-            spot_bal = _part3_mod.fetch_spot_balance_safe(exchange)
+            spot_bal = fetch_spot_balance_safe(exchange)
             if spot_bal:
                 spot_total, _, _ = _balance_to_usdt_value(
                     exchange=exchange,

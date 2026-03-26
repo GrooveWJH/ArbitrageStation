@@ -7,15 +7,17 @@ from datetime import timedelta, timezone
 # Ensure backend directory is importable
 sys.path.insert(0, os.path.dirname(__file__))
 
-from fastapi import FastAPI, HTTPException, Request
-from fastapi.exceptions import RequestValidationError
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
-from sqlalchemy import text
+from infra.market.gateway import get_market_read_status, verify_market_read_ready
 
 from db import SessionLocal, init_db
-from db.models import AppConfig
+from db.models import AppConfig, Exchange
+from error_handlers import register_exception_handlers
+from readiness import readiness_snapshot
+from domains.exchanges.service import default_is_unified_account
 from domains.exchanges.router import router as exchanges_router
 from domains.dashboard.router import router as dashboard_router
 from domains.trading.router import router as trading_router
@@ -45,6 +47,8 @@ from domains.runtime.service import (
     schedule_collect_recent_snapshots,
     schedule_daily_universe_freeze,
     setup_all_hedge_modes,
+    sync_market_opportunity_inputs,
+    sync_market_volume_cache,
     start_okx_private_ws_supervisor,
     stop_okx_private_ws_supervisor,
     update_position_prices,
@@ -64,6 +68,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 EQUITY_SNAPSHOT_INTERVAL_SECS = 20
+FUNDING_SYNC_INTERVAL_SECS = 5
+VOLUME_SYNC_INTERVAL_SECS = 60
+OPPORTUNITY_SYNC_INTERVAL_SECS = 1
+POSITION_PRICE_SYNC_INTERVAL_SECS = 2
+DEFAULT_PUBLIC_EXCHANGES = ("binance", "okx", "gate", "mexc")
 
 app = FastAPI(title="Arbitrage Tool API", version="1.0.0")
 
@@ -86,69 +95,7 @@ app.include_router(spot_basis_router)
 app.include_router(spot_basis_data_router)
 app.include_router(pnl_v2_router)
 app.include_router(ws_router)
-
-
-def _error_message_from_detail(detail, fallback: str) -> str:
-    if isinstance(detail, str) and detail.strip():
-        return detail
-    if isinstance(detail, dict):
-        msg = detail.get("message")
-        if isinstance(msg, str) and msg.strip():
-            return msg
-    return fallback
-
-
-def _error_payload(*, request: Request, status_code: int, detail, fallback_message: str) -> dict:
-    request_id = request.headers.get("X-Request-Id") or request.headers.get("Idempotency-Key")
-    return {
-        "detail": detail,
-        "error": {
-            "code": f"HTTP_{status_code}",
-            "message": _error_message_from_detail(detail, fallback_message),
-            "quality_reason": None,
-            "request_id": request_id,
-        },
-    }
-
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content=_error_payload(
-            request=request,
-            status_code=exc.status_code,
-            detail=exc.detail,
-            fallback_message="Request failed",
-        ),
-    )
-
-
-@app.exception_handler(RequestValidationError)
-async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    return JSONResponse(
-        status_code=422,
-        content=_error_payload(
-            request=request,
-            status_code=422,
-            detail=exc.errors(),
-            fallback_message="Validation error",
-        ),
-    )
-
-
-@app.exception_handler(Exception)
-async def unhandled_exception_handler(request: Request, exc: Exception):
-    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
-    return JSONResponse(
-        status_code=500,
-        content=_error_payload(
-            request=request,
-            status_code=500,
-            detail="Internal server error",
-            fallback_message="Internal server error",
-        ),
-    )
+register_exception_handlers(app, logger)
 
 # Freeze scheduler timezone to UTC+8 so cron jobs are deterministic across hosts.
 UTC8 = timezone(timedelta(hours=8))
@@ -157,8 +104,7 @@ scheduler = BackgroundScheduler(timezone=UTC8)
 
 def reschedule_jobs(data_interval: int = None, risk_interval: int = None):
     if data_interval is not None:
-        safe_data_interval = max(5, int(data_interval))
-        scheduler.reschedule_job("collect_rates", trigger="interval", seconds=safe_data_interval)
+        safe_data_interval = max(1, int(data_interval))
         scheduler.reschedule_job("update_prices", trigger="interval", seconds=safe_data_interval)
     if risk_interval is not None:
         safe_risk_interval = max(3, int(risk_interval))
@@ -173,19 +119,57 @@ def _get_app_config():
         db.close()
 
 
+def _ensure_public_read_exchanges() -> None:
+    db = SessionLocal()
+    try:
+        existing = {
+            str(ex.name or "").lower().strip(): ex
+            for ex in db.query(Exchange).all()
+            if ex.name
+        }
+        changed = False
+        for name in DEFAULT_PUBLIC_EXCHANGES:
+            if name in existing:
+                continue
+            db.add(
+                Exchange(
+                    name=name,
+                    display_name=name.upper(),
+                    api_key="",
+                    api_secret="",
+                    passphrase="",
+                    is_active=True,
+                    is_testnet=False,
+                    is_unified_account=default_is_unified_account(name),
+                )
+            )
+            changed = True
+        if changed:
+            db.commit()
+            logger.info("Seeded default public exchanges for market-read: %s", ",".join(DEFAULT_PUBLIC_EXCHANGES))
+    finally:
+        db.close()
+
+
 @app.on_event("startup")
 async def startup():
     os.makedirs(os.path.join(os.path.dirname(__file__), "data"), exist_ok=True)
     init_db()
+    _ensure_public_read_exchanges()
     logger.info("Database initialized")
+    verify_market_read_ready()
+    logger.info("Market read source ready: %s", get_market_read_status().get("base_url"))
 
     cfg = _get_app_config()
-    data_interval = max(5, int(cfg.data_refresh_interval if cfg else 30))
     risk_interval = max(3, int(cfg.risk_check_interval if cfg else 10))
 
-    scheduler.add_job(collect_funding_rates, "interval", seconds=data_interval,
+    scheduler.add_job(collect_funding_rates, "interval", seconds=FUNDING_SYNC_INTERVAL_SECS,
                       id="collect_rates", replace_existing=True)
-    scheduler.add_job(update_position_prices, "interval", seconds=data_interval,
+    scheduler.add_job(sync_market_volume_cache, "interval", seconds=VOLUME_SYNC_INTERVAL_SECS,
+                      id="collect_volume", replace_existing=True)
+    scheduler.add_job(sync_market_opportunity_inputs, "interval", seconds=OPPORTUNITY_SYNC_INTERVAL_SECS,
+                      id="collect_opportunity_inputs", replace_existing=True)
+    scheduler.add_job(update_position_prices, "interval", seconds=POSITION_PRICE_SYNC_INTERVAL_SECS,
                       id="update_prices", replace_existing=True)
     scheduler.add_job(run_risk_checks, "interval", seconds=risk_interval,
                       id="risk_checks", replace_existing=True)
@@ -247,8 +231,11 @@ async def startup():
     )
     scheduler.start()
     logger.info(
-        "Scheduler started (data: %ss, risk: %ss, equity_snapshot: %ss)",
-        data_interval,
+        "Scheduler started (funding: %ss, volume: %ss, opp: %ss, pos: %ss, risk: %ss, equity_snapshot: %ss)",
+        FUNDING_SYNC_INTERVAL_SECS,
+        VOLUME_SYNC_INTERVAL_SECS,
+        OPPORTUNITY_SYNC_INTERVAL_SECS,
+        POSITION_PRICE_SYNC_INTERVAL_SECS,
         risk_interval,
         EQUITY_SNAPSHOT_INTERVAL_SECS,
     )
@@ -258,6 +245,8 @@ async def startup():
 
     # Initial data pull
     asyncio.get_event_loop().run_in_executor(None, collect_funding_rates)
+    asyncio.get_event_loop().run_in_executor(None, sync_market_volume_cache)
+    asyncio.get_event_loop().run_in_executor(None, sync_market_opportunity_inputs)
     asyncio.get_event_loop().run_in_executor(None, refresh_spread_stats)
     asyncio.get_event_loop().run_in_executor(None, collect_equity_snapshot)
 
@@ -277,51 +266,14 @@ async def shutdown():
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok"}
-
-
-def _readiness_snapshot() -> tuple[dict, int]:
-    db_ok = False
-    db_error = ""
-    db = SessionLocal()
-    try:
-        db.execute(text("SELECT 1"))
-        db_ok = True
-    except Exception as exc:
-        db_error = str(exc)[:200]
-    finally:
-        db.close()
-
-    scheduler_running = False
-    scheduler_error = ""
-    job_ids: list[str] = []
-    try:
-        scheduler_running = bool(scheduler.running)
-        job_ids = sorted(job.id for job in scheduler.get_jobs())
-    except Exception as exc:
-        scheduler_error = str(exc)[:200]
-
-    ready = db_ok and scheduler_running
-    payload = {
-        "status": "ok" if ready else "degraded",
-        "checks": {
-            "database": {
-                "ok": db_ok,
-                "error": db_error or None,
-            },
-            "scheduler": {
-                "ok": scheduler_running,
-                "running": scheduler_running,
-                "job_count": len(job_ids),
-                "job_ids": job_ids,
-                "error": scheduler_error or None,
-            },
-        },
-    }
-    return payload, (200 if ready else 503)
+    return {"status": "ok", "market_read": get_market_read_status()}
 
 
 @app.get("/api/ready")
 def ready():
-    payload, code = _readiness_snapshot()
+    payload, code = readiness_snapshot(
+        session_factory=SessionLocal,
+        scheduler=scheduler,
+        market_status_getter=get_market_read_status,
+    )
     return JSONResponse(status_code=code, content=payload)

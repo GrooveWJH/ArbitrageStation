@@ -14,6 +14,8 @@ from infra.tasks.gateway import (
     schedule_collect_recent_snapshots,
     schedule_daily_universe_freeze,
     setup_all_hedge_modes,
+    sync_market_opportunity_inputs,
+    sync_market_volume_cache,
     start_okx_private_ws_supervisor,
     stop_okx_private_ws_supervisor,
     update_position_prices,
@@ -34,9 +36,10 @@ __all__ = [
     "schedule_collect_recent_snapshots",
     "schedule_daily_universe_freeze",
     "setup_all_hedge_modes",
+    "sync_market_opportunity_inputs",
+    "sync_market_volume_cache",
     "start_okx_private_ws_supervisor",
     "stop_okx_private_ws_supervisor",
     "update_position_prices",
     "update_spread_position_prices",
 ]
-

@@ -15,6 +15,8 @@ run_spread_arb = runtime_integrations.run_spread_arb
 schedule_collect_recent_snapshots = runtime_integrations.schedule_collect_recent_snapshots
 schedule_daily_universe_freeze = runtime_integrations.schedule_daily_universe_freeze
 setup_all_hedge_modes = runtime_integrations.setup_all_hedge_modes
+sync_market_opportunity_inputs = runtime_integrations.sync_market_opportunity_inputs
+sync_market_volume_cache = runtime_integrations.sync_market_volume_cache
 start_okx_private_ws_supervisor = runtime_integrations.start_okx_private_ws_supervisor
 stop_okx_private_ws_supervisor = runtime_integrations.stop_okx_private_ws_supervisor
 update_position_prices = runtime_integrations.update_position_prices
@@ -34,6 +36,8 @@ __all__ = [
     "schedule_collect_recent_snapshots",
     "schedule_daily_universe_freeze",
     "setup_all_hedge_modes",
+    "sync_market_opportunity_inputs",
+    "sync_market_volume_cache",
     "start_okx_private_ws_supervisor",
     "stop_okx_private_ws_supervisor",
     "update_position_prices",
