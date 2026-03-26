@@ -71,6 +71,9 @@ def _service_config(
     dbbroker_queue_high_watermark: int,
     dbbroker_queue_critical_watermark: int,
     snapshot_interval_sec: int,
+    funding_interval_sec: int,
+    volume_interval_sec: int,
+    opportunity_interval_sec: int,
 ) -> ServiceConfig:
     return ServiceConfig(
         symbols_file=symbols_file,
@@ -104,6 +107,9 @@ def _service_config(
         dbbroker_queue_high_watermark=dbbroker_queue_high_watermark,
         dbbroker_queue_critical_watermark=dbbroker_queue_critical_watermark,
         snapshot_interval_sec=snapshot_interval_sec,
+        funding_interval_sec=funding_interval_sec,
+        volume_interval_sec=volume_interval_sec,
+        opportunity_interval_sec=opportunity_interval_sec,
     )
 
 
@@ -140,6 +146,9 @@ def serve(
     dbbroker_queue_high_watermark: Annotated[int, typer.Option(help="dbbroker high watermark")] = 20000,
     dbbroker_queue_critical_watermark: Annotated[int, typer.Option(help="dbbroker critical watermark")] = 80000,
     snapshot_interval_sec: Annotated[int, typer.Option(help="snapshot interval sec")] = 5,
+    funding_interval_sec: Annotated[int, typer.Option(help="funding pull interval sec")] = 5,
+    volume_interval_sec: Annotated[int, typer.Option(help="24h volume pull interval sec")] = 60,
+    opportunity_interval_sec: Annotated[int, typer.Option(help="opportunity snapshot interval sec")] = 1,
 ) -> None:
     from lib.marketdata.service.api import create_app
     from lib.marketdata.service.runtime import ServiceRuntime
@@ -181,6 +190,9 @@ def serve(
         dbbroker_queue_high_watermark=dbbroker_queue_high_watermark,
         dbbroker_queue_critical_watermark=dbbroker_queue_critical_watermark,
         snapshot_interval_sec=snapshot_interval_sec,
+        funding_interval_sec=funding_interval_sec,
+        volume_interval_sec=volume_interval_sec,
+        opportunity_interval_sec=opportunity_interval_sec,
     )
     runtime = ServiceRuntime(cfg)
     fastapi_app = create_app(runtime)

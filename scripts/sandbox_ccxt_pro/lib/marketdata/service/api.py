@@ -81,6 +81,32 @@ def create_app(runtime: ServiceRuntime) -> FastAPI:
     async def symbols() -> dict:
         return await runtime.api_symbols()
 
+    @app.get("/v1/funding/latest")
+    async def funding_latest(
+        exchange: str = Query(default=""),
+        symbol: str = Query(default=""),
+        limit: int = Query(default=500, ge=1, le=5000),
+    ) -> dict:
+        return await runtime.api_funding_latest(exchange=exchange, symbol=symbol, limit=limit)
+
+    @app.get("/v1/volume/latest")
+    async def volume_latest(
+        exchange: str = Query(default=""),
+        market: str = Query(default=""),
+        symbol: str = Query(default=""),
+        limit: int = Query(default=500, ge=1, le=5000),
+    ) -> dict:
+        return await runtime.api_volume_latest(exchange=exchange, market=market, symbol=symbol, limit=limit)
+
+    @app.get("/v1/opportunity-inputs")
+    async def opportunity_inputs(
+        exchange: str = Query(default=""),
+        market: str = Query(default=""),
+        symbol: str = Query(default=""),
+        limit: int = Query(default=500, ge=1, le=5000),
+    ) -> dict:
+        return await runtime.api_opportunity_inputs(exchange=exchange, market=market, symbol=symbol, limit=limit)
+
     @app.websocket("/ws/quotes")
     async def ws_quotes(websocket: WebSocket):
         await websocket.accept()

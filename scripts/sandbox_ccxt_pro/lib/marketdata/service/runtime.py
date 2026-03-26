@@ -1,13 +1,14 @@
 from __future__ import annotations
 import asyncio
 import time
-from dataclasses import dataclass
 from pathlib import Path
 from lib.common.symbols import load_symbols_for_service
 from lib.marketdata.service.collector import CollectorConfig, CollectorManager
 from lib.marketdata.service.compaction import SQLiteCompactor
+from lib.marketdata.service.config import ServiceConfig
 from lib.marketdata.service.db_broker import DBBroker
 from lib.marketdata.service.hub import WsHub
+from lib.marketdata.service.slow_data_poller import SlowDataPoller
 from lib.marketdata.service.runtime_loops import (
     boot_watch_loop,
     compaction_loop,
@@ -34,12 +35,22 @@ from lib.marketdata.service.runtime_loop_filters import (
     is_ws_keepalive_timeout,
 )
 from lib.marketdata.service.runtime_read_api import (
+    api_funding_latest,
     api_latest,
     api_series,
     api_symbols,
+    api_volume_latest,
     fallback_rows,
     safe_read_rows,
     safe_read_symbols,
+)
+from lib.marketdata.service.runtime_slow_data import (
+    api_opportunity_inputs as _api_opportunity_inputs_mem,
+    init_slow_data_state,
+    on_funding_points,
+    on_quote_slow_cache,
+    on_volume_points,
+    opportunity_snapshot_loop as _opportunity_snapshot_loop,
 )
 from lib.marketdata.service.storage import SQLiteStorage
 from lib.marketdata.service.types import (
@@ -51,39 +62,6 @@ from lib.marketdata.service.types import (
     WriterBatchStat,
 )
 from lib.reporting.log import log_error
-@dataclass(frozen=True)
-class ServiceConfig:
-    symbols_file: str
-    db_path: str
-    metrics_out: str
-    host: str
-    port: int
-    all_exchanges: bool
-    exchange: str
-    market: str
-    order_book_limit: int
-    window_sec: int
-    target_hz: float
-    exchange_profile: str
-    restart_window_sec: int
-    restart_budget: int
-    queue_max: int
-    write_batch_size: int
-    write_flush_ms: int
-    compact_interval_sec: int
-    collector_boot_parallelism: int
-    boot_timeout_sec: int
-    compaction_batch_rows: int
-    compaction_time_budget_ms: int
-    compaction_queue_high_watermark: int
-    compaction_staleness_threshold_sec: float
-    dbbroker_tick_ms: int
-    dbbroker_quote_batch_size: int
-    dbbroker_stats_interval_sec: int
-    dbbroker_compact_budget_ms: int
-    dbbroker_queue_high_watermark: int
-    dbbroker_queue_critical_watermark: int
-    snapshot_interval_sec: int
 class ServiceRuntime:
     def __init__(self, cfg: ServiceConfig):
         self.cfg = cfg
@@ -124,6 +102,8 @@ class ServiceRuntime:
         self.api_read_fallback_hits = 0
         self.api_read_busy_retries = 0
         self.api_read_last_fallback_ms = 0
+        self.slow_data_poller: SlowDataPoller | None = None
+        self._init_slow_data_state()
         self._tasks: list[asyncio.Task] = []
 
     @staticmethod
@@ -161,11 +141,21 @@ class ServiceRuntime:
         self.collector_boot_started_at_ms = int(time.time() * 1000)
         self._collector_task = asyncio.create_task(self._start_collectors())
         self._boot_watcher_task = asyncio.create_task(self._boot_watch_loop())
+        self.slow_data_poller = SlowDataPoller(
+            symbols_by_exchange=symbols_by_exchange,
+            market_mode=self.cfg.market,
+            funding_interval_sec=max(2, self.cfg.funding_interval_sec),
+            volume_interval_sec=max(10, self.cfg.volume_interval_sec),
+            on_funding=self._on_funding_points,
+            on_volume=self._on_volume_points,
+        )
+        await self.slow_data_poller.start()
         self._tasks = [
             asyncio.create_task(self._writer_loop()),
             asyncio.create_task(self._worker_stats_flush_loop()),
             asyncio.create_task(self._compaction_loop()),
             asyncio.create_task(self._snapshot_loop()),
+            asyncio.create_task(self._opportunity_snapshot_loop()),
         ]
 
     async def stop(self) -> None:
@@ -180,6 +170,9 @@ class ServiceRuntime:
             self._boot_watcher_task = None
         if self.collector is not None:
             await self._await_with_timeout(self.collector.stop(), 2.5, "collector-stop")
+        if self.slow_data_poller is not None:
+            await self._await_with_timeout(self.slow_data_poller.stop(), 2.5, "slow-data-stop")
+            self.slow_data_poller = None
 
         for task in self._tasks:
             task.cancel()
@@ -242,6 +235,7 @@ class ServiceRuntime:
 
     def on_quote(self, event: QuoteEvent) -> None:
         self.writer_stat.queue_peak = max(self.writer_stat.queue_peak, self.quote_q.qsize())
+        self._on_quote_slow_cache(event.to_dict())
         try:
             self.quote_q.put_nowait(event)
         except asyncio.QueueFull:
@@ -293,6 +287,14 @@ ServiceRuntime._refresh_collector_boot_state = refresh_collector_boot_state
 ServiceRuntime.api_latest = api_latest
 ServiceRuntime.api_series = api_series
 ServiceRuntime.api_symbols = api_symbols
+ServiceRuntime.api_funding_latest = api_funding_latest
+ServiceRuntime.api_volume_latest = api_volume_latest
 ServiceRuntime._safe_read_rows = safe_read_rows
 ServiceRuntime._safe_read_symbols = safe_read_symbols
 ServiceRuntime._fallback_rows = fallback_rows
+ServiceRuntime._init_slow_data_state = init_slow_data_state
+ServiceRuntime._on_quote_slow_cache = on_quote_slow_cache
+ServiceRuntime._on_funding_points = on_funding_points
+ServiceRuntime._on_volume_points = on_volume_points
+ServiceRuntime._opportunity_snapshot_loop = _opportunity_snapshot_loop
+ServiceRuntime.api_opportunity_inputs = _api_opportunity_inputs_mem

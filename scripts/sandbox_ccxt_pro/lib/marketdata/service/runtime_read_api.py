@@ -73,6 +73,43 @@ async def api_symbols(self: "ServiceRuntime") -> dict:
     }
 
 
+async def api_funding_latest(self: "ServiceRuntime", *, exchange: str, symbol: str, limit: int) -> dict:
+    cache_key = f"funding|{exchange}|{symbol}|{limit}"
+    rows, source, degraded, reason = await self._safe_read_rows(
+        cache_key=cache_key,
+        loader=lambda: _query_latest_funding(self, exchange=exchange, symbol=symbol, limit=limit),
+    )
+    return {
+        "rows": rows,
+        "count": len(rows),
+        "source": source,
+        "degraded": degraded,
+        "reason": reason,
+    }
+
+
+async def api_volume_latest(
+    self: "ServiceRuntime",
+    *,
+    exchange: str,
+    market: str,
+    symbol: str,
+    limit: int,
+) -> dict:
+    cache_key = f"volume|{exchange}|{market}|{symbol}|{limit}"
+    rows, source, degraded, reason = await self._safe_read_rows(
+        cache_key=cache_key,
+        loader=lambda: _query_latest_volume(self, exchange=exchange, market=market, symbol=symbol, limit=limit),
+    )
+    return {
+        "rows": rows,
+        "count": len(rows),
+        "source": source,
+        "degraded": degraded,
+        "reason": reason,
+    }
+
+
 async def safe_read_rows(self: "ServiceRuntime", *, cache_key: str, loader) -> tuple[list[dict], str, bool, str]:
     retries = (0.05, 0.1, 0.2)
     last_exc: Exception | None = None
@@ -126,3 +163,47 @@ def fallback_rows(self: "ServiceRuntime", *, cache_key: str, exc: Exception | No
     if isinstance(cached, list):
         return [row for row in cached if isinstance(row, dict)], "cache", True, reason
     return [], "empty", True, reason
+
+
+async def _query_latest_funding(self: "ServiceRuntime", *, exchange: str, symbol: str, limit: int) -> list[dict]:
+    cond = []
+    params: list[object] = []
+    if exchange:
+        cond.append("exchange = ?")
+        params.append(exchange)
+    if symbol:
+        cond.append("symbol = ?")
+        params.append(symbol)
+    where = f"WHERE {' AND '.join(cond)}" if cond else ""
+    sql = f"SELECT * FROM latest_funding {where} ORDER BY updated_at_ms DESC LIMIT ?"
+    params.append(max(1, min(5000, limit)))
+    cur = await self.storage.execute_maint(sql, tuple(params))
+    rows = await cur.fetchall()
+    return [dict(r) for r in rows]
+
+
+async def _query_latest_volume(
+    self: "ServiceRuntime",
+    *,
+    exchange: str,
+    market: str,
+    symbol: str,
+    limit: int,
+) -> list[dict]:
+    cond = []
+    params: list[object] = []
+    if exchange:
+        cond.append("exchange = ?")
+        params.append(exchange)
+    if market:
+        cond.append("market = ?")
+        params.append(market)
+    if symbol:
+        cond.append("symbol = ?")
+        params.append(symbol)
+    where = f"WHERE {' AND '.join(cond)}" if cond else ""
+    sql = f"SELECT * FROM latest_volume {where} ORDER BY updated_at_ms DESC LIMIT ?"
+    params.append(max(1, min(5000, limit)))
+    cur = await self.storage.execute_maint(sql, tuple(params))
+    rows = await cur.fetchall()
+    return [dict(r) for r in rows]

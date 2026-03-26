@@ -34,6 +34,10 @@ def classify_error(self: "DBBroker", task_type: str, exc: Exception) -> str:
         return "SQLITE_BUSY"
     if task_type == self.task_types.WRITE_QUOTES:
         return "WRITE_FAIL"
+    if task_type == self.task_types.WRITE_FUNDING:
+        return "FUNDING_FAIL"
+    if task_type == self.task_types.WRITE_VOLUME:
+        return "VOLUME_FAIL"
     if task_type == self.task_types.WRITE_WORKER_STATS:
         return "STATS_FAIL"
     if task_type == self.task_types.COMPACT_CHUNK:

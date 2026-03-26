@@ -21,6 +21,49 @@ class QuoteEvent:
         return asdict(self)
 
 
+@dataclass(frozen=True)
+class FundingPoint:
+    exchange: str
+    symbol: str
+    funding_rate: float
+    next_funding_ts_ms: int | None
+    updated_at_ms: int
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class VolumePoint:
+    exchange: str
+    market: str
+    symbol: str
+    volume_24h_quote: float
+    updated_at_ms: int
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class OpportunityInputRow:
+    exchange: str
+    market: str
+    symbol: str
+    bid1: float
+    ask1: float
+    mid: float
+    spread_bps: float
+    funding_rate: float | None
+    volume_24h_quote: float | None
+    freshness_sec: float
+    coverage: float
+    ts_recv_ms: int
+
+    def to_dict(self) -> dict:
+        return asdict(self)
+
+
 @dataclass
 class WorkerStreamStat:
     worker_id: str
@@ -95,6 +138,8 @@ class DBTaskPriority(IntEnum):
 @dataclass(frozen=True)
 class DBTaskType:
     WRITE_QUOTES: str = "WRITE_QUOTES"
+    WRITE_FUNDING: str = "WRITE_FUNDING"
+    WRITE_VOLUME: str = "WRITE_VOLUME"
     WRITE_WORKER_STATS: str = "WRITE_WORKER_STATS"
     COMPACT_CHUNK: str = "COMPACT_CHUNK"
     CHECKPOINT: str = "CHECKPOINT"

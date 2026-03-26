@@ -28,6 +28,7 @@ async def snapshot_payload(self: "ServiceRuntime") -> dict:
     mem = memory_stats(self)
     workers = enrich_workers_wire(self, workers)
     wire = wire_global_stats(self)
+    slow = _slow_data_fields(self, int(time.time() * 1000))
 
     return {
         "generated_at": time.strftime("%Y-%m-%d %H:%M:%S"),
@@ -70,6 +71,7 @@ async def snapshot_payload(self: "ServiceRuntime") -> dict:
             "api_read_fallback_hits": self.api_read_fallback_hits,
             "api_read_busy_retries": self.api_read_busy_retries,
             "api_read_last_fallback_ms": self.api_read_last_fallback_ms,
+            **slow,
             "run_elapsed_sec": run_elapsed,
             "staleness_sec": staleness,
             **mem,
@@ -151,6 +153,7 @@ async def api_health(self: "ServiceRuntime") -> dict:
     broker_stats = self.db_broker.snapshot()
     mem = memory_stats(self)
     wire = wire_global_stats(self)
+    slow = _slow_data_fields(self, int(time.time() * 1000))
     return {
         "ok": not self.stop_event.is_set(),
         "collector_boot_state": self.collector_boot_state,
@@ -184,6 +187,7 @@ async def api_health(self: "ServiceRuntime") -> dict:
         "api_read_fallback_hits": self.api_read_fallback_hits,
         "api_read_busy_retries": self.api_read_busy_retries,
         "api_read_last_fallback_ms": self.api_read_last_fallback_ms,
+        **slow,
         **mem,
         **wire,
         "workers": self._workers_health_summary(),
@@ -265,3 +269,31 @@ def refresh_collector_boot_state(self: "ServiceRuntime") -> None:
         log_info("collector ready")
     if new_state != prev and new_state in {"degraded", "error"} and not self.collector_boot_error:
         self.collector_boot_error = "boot_timeout_partial_ready" if new_state == "degraded" else "boot_timeout_or_all_failed"
+
+
+def _freshness_sec(now_ms: int, ts_ms: int) -> float:
+    if ts_ms <= 0:
+        return 1e9
+    return max(0.0, (now_ms - ts_ms) / 1000.0)
+
+
+def _slow_data_fields(self: "ServiceRuntime", now_ms: int) -> dict:
+    funding_freshness_sec = _freshness_sec(now_ms, int(getattr(self, "funding_last_pull_ms", 0)))
+    volume_freshness_sec = _freshness_sec(now_ms, int(getattr(self, "volume_last_pull_ms", 0)))
+    opportunity_freshness_sec = _freshness_sec(now_ms, int(getattr(self, "opportunity_snapshot_last_ms", 0)))
+    return {
+        "funding_last_pull_ms": int(getattr(self, "funding_last_pull_ms", 0)),
+        "funding_pull_errors": int(getattr(self, "funding_pull_errors", 0)),
+        "funding_coverage_ratio": float(getattr(self, "funding_coverage_ratio", 0.0)),
+        "funding_freshness_sec": funding_freshness_sec,
+        "funding_stale": funding_freshness_sec > 15.0,
+        "volume_last_pull_ms": int(getattr(self, "volume_last_pull_ms", 0)),
+        "volume_pull_errors": int(getattr(self, "volume_pull_errors", 0)),
+        "volume_coverage_ratio": float(getattr(self, "volume_coverage_ratio", 0.0)),
+        "volume_freshness_sec": volume_freshness_sec,
+        "volume_stale": volume_freshness_sec > 180.0,
+        "opportunity_snapshot_last_ms": int(getattr(self, "opportunity_snapshot_last_ms", 0)),
+        "opportunity_items": len(getattr(self, "opportunity_rows", [])),
+        "opportunity_freshness_sec": opportunity_freshness_sec,
+        "opportunity_stale": opportunity_freshness_sec > 5.0,
+    }

@@ -16,6 +16,7 @@ from lib.marketdata.service.db_broker_state import (
     record_task_failure,
     warn_rate_limited,
 )
+from lib.marketdata.service.db_broker_tasks import execute_task
 from lib.marketdata.service.compaction import SQLiteCompactor
 from lib.marketdata.service.storage import SQLiteStorage
 from lib.marketdata.service.types import (
@@ -23,7 +24,9 @@ from lib.marketdata.service.types import (
     DBBrokerRuntimeStat,
     DBTaskPriority,
     DBTaskType,
+    FundingPoint,
     QuoteEvent,
+    VolumePoint,
     WorkerStreamStat,
 )
 
@@ -101,6 +104,26 @@ class DBBroker:
         await self._enqueue(
             DBTaskPriority.WORKER_STATS,
             _Task(task_type=self.task_types.WRITE_WORKER_STATS, payload=stats),
+        )
+
+    async def submit_funding(self, points: list[FundingPoint]) -> None:
+        if not points:
+            return
+        if self._q.qsize() >= self.config.queue_high_watermark:
+            return
+        await self._enqueue(
+            DBTaskPriority.WORKER_STATS,
+            _Task(task_type=self.task_types.WRITE_FUNDING, payload=points),
+        )
+
+    async def submit_volume(self, points: list[VolumePoint]) -> None:
+        if not points:
+            return
+        if self._q.qsize() >= self.config.queue_high_watermark:
+            return
+        await self._enqueue(
+            DBTaskPriority.WORKER_STATS,
+            _Task(task_type=self.task_types.WRITE_VOLUME, payload=points),
         )
 
     async def submit_compaction(
@@ -216,76 +239,7 @@ class DBBroker:
         return None
 
     async def _execute(self, task: _Task) -> Any:
-        self.stat.task_counts_by_type[task.task_type] = self.stat.task_counts_by_type.get(task.task_type, 0) + 1
-
-        if task.task_type == self.task_types.WRITE_QUOTES:
-            quotes = list(task.payload)
-            if quotes:
-                chunk_size = max(100, int(self.config.quote_batch_size))
-                for start in range(0, len(quotes), chunk_size):
-                    await self.storage.write_quotes(quotes[start : start + chunk_size])
-            return {"written": len(quotes)}
-
-        if task.task_type == self.task_types.WRITE_WORKER_STATS:
-            stats = list(task.payload)
-            if stats:
-                await self.storage.write_worker_stats(stats)
-            return {"written": len(stats)}
-
-        if task.task_type == self.task_types.COMPACT_CHUNK:
-            skip_reason = str(task.payload.get("skip_reason", ""))
-            if skip_reason:
-                self.stat.compaction_chunks_skipped += 1
-                await self.storage.log_compaction("compact_skipped", skip_reason)
-                return {"mode": "skipped", "skip_reason": skip_reason, "processed": 0}
-            try:
-                result = await self.compactor.run_once(
-                    batch_rows=max(100, int(task.payload.get("batch_rows", 1000))),
-                    time_budget_ms=max(20, int(task.payload.get("time_budget_ms", self.config.compact_budget_ms))),
-                )
-                self.stat.compaction_chunks_ok += 1
-                checkpoint_mode = str(result.get("checkpoint_mode", "PASSIVE"))
-                if checkpoint_mode:
-                    await self.storage.checkpoint_and_vacuum(mode=checkpoint_mode, pages=0)
-                vacuum_pages = int(result.get("vacuum_pages", 0))
-                while vacuum_pages > 0:
-                    chunk_pages = min(250, vacuum_pages)
-                    vacuum_pages -= chunk_pages
-                    await self._enqueue(
-                        DBTaskPriority.MAINT,
-                        _Task(task_type=self.task_types.VACUUM_PAGES, payload={"pages": chunk_pages}),
-                    )
-                return result
-            except Exception as exc:  # noqa: BLE001
-                self.stat.compaction_chunks_failed += 1
-                inc_err(self, "COMPACTION_FAIL")
-                raise exc
-
-        if task.task_type == self.task_types.CHECKPOINT:
-            mode = str(task.payload.get("mode", "PASSIVE"))
-            pages = int(task.payload.get("pages", 0))
-            try:
-                await self.storage.checkpoint_and_vacuum(mode=mode, pages=pages)
-            except Exception as exc:  # noqa: BLE001
-                inc_err(self, "CHECKPOINT_FAIL")
-                raise exc
-            return {"ok": True}
-
-        if task.task_type == self.task_types.VACUUM_PAGES:
-            pages = max(1, int(task.payload.get("pages", 0)))
-            try:
-                await self.storage.checkpoint_and_vacuum(mode="PASSIVE", pages=pages)
-                self.stat.vacuum_pages_ok += pages
-                return {"ok": True, "pages": pages}
-            except Exception as exc:  # noqa: BLE001
-                self.stat.vacuum_pages_failed += pages
-                inc_err(self, "VACUUM_FAIL")
-                raise exc
-
-        if task.task_type == self.task_types.FLUSH_NOW:
-            return {"ok": True}
-
-        return {"ok": False}
+        return await execute_task(self, task)
 
 DBBroker._inc_err = inc_err
 DBBroker._record_success = record_success

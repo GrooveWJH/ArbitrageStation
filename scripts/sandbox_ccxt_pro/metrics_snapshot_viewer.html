@@ -861,6 +861,7 @@
     }
 
     function aggregateOverview(workers) {
+      const global = state.snapshot?.global || {};
       const totalWorkers = workers.length;
       const totalEvents = workers.reduce((s, w) => s + w.total_events, 0);
       const totalBytes = workers.reduce((s, w) => s + w.total_bytes, 0);
@@ -870,7 +871,7 @@
       const fatalCount = workers.filter((w) => w.fatal_errors > 0).length;
       const degradedCount = workers.filter((w) => w.fatal_errors <= 0 && (w.degraded || w.hz_p95 < state.snapshot.target_hz || w.total_errors > 0 || w.symbol_count_no_data > 0)).length;
       const healthyCount = Math.max(0, totalWorkers - fatalCount - degradedCount);
-      const elapsedSec = toNum(state.snapshot.global?.elapsed_sec, 0);
+      const elapsedSec = toNum(global.run_elapsed_sec, toNum(global.elapsed_sec, 0));
       return {
         totalWorkers,
         totalEvents,
@@ -882,6 +883,18 @@
         fatalCount,
         healthyCount,
         elapsedSec,
+        stalenessSec: toNum(global.staleness_sec, 0),
+        fundingFreshnessSec: toNum(global.funding_freshness_sec, 0),
+        volumeFreshnessSec: toNum(global.volume_freshness_sec, 0),
+        opportunityFreshnessSec: toNum(global.opportunity_freshness_sec, 0),
+        fundingCoverageRatio: toNum(global.funding_coverage_ratio, 0),
+        volumeCoverageRatio: toNum(global.volume_coverage_ratio, 0),
+        opportunityItems: toNum(global.opportunity_items, 0),
+        fundingPullErrors: toNum(global.funding_pull_errors, 0),
+        volumePullErrors: toNum(global.volume_pull_errors, 0),
+        fundingStale: Boolean(global.funding_stale),
+        volumeStale: Boolean(global.volume_stale),
+        opportunityStale: Boolean(global.opportunity_stale),
       };
     }
 
@@ -895,6 +908,13 @@
         ["No Data Symbols", fmtInt(stats.noData)],
         ["Degraded Workers", fmtInt(stats.degradedCount)],
         ["Fatal Workers", fmtInt(stats.fatalCount)],
+        ["Quote Freshness", `${fmtNum(stats.stalenessSec, 2)} s`],
+        ["Funding Freshness", `${fmtNum(stats.fundingFreshnessSec, 2)} s`],
+        ["Funding Coverage", fmtPct(stats.fundingCoverageRatio, 2)],
+        ["Volume Freshness", `${fmtNum(stats.volumeFreshnessSec, 2)} s`],
+        ["Volume Coverage", fmtPct(stats.volumeCoverageRatio, 2)],
+        ["Opportunity Freshness", `${fmtNum(stats.opportunityFreshnessSec, 2)} s`],
+        ["Opportunity Items", fmtInt(stats.opportunityItems)],
       ];
       dom.kpiGrid.innerHTML = items.map(([k, v]) => `<div class="kpi"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
     }
@@ -923,13 +943,20 @@
         dom.weakSummary.textContent = "当前筛选结果为空。";
         return;
       }
+      const stats = aggregateOverview(workers);
       const minHz = workers.reduce((m, w) => (w.hz_p95 < m.hz_p95 ? w : m), workers[0]);
       const maxNoData = workers.reduce((m, w) => (w.symbol_count_no_data > m.symbol_count_no_data ? w : m), workers[0]);
       const maxErr = workers.reduce((m, w) => (w.worker_error_rate > m.worker_error_rate ? w : m), workers[0]);
+      const stale = [
+        stats.fundingStale ? "funding stale" : "",
+        stats.volumeStale ? "volume stale" : "",
+        stats.opportunityStale ? "opportunity stale" : "",
+      ].filter(Boolean).join(", ") || "none";
 
       dom.weakSummary.textContent = `当前最弱环节：低频风险 ${minHz.worker_key} (hz_p95=${fmtNum(minHz.hz_p95, 2)}), ` +
         `覆盖缺口 ${maxNoData.worker_key} (no_data=${maxNoData.symbol_count_no_data}), ` +
-        `错误率最高 ${maxErr.worker_key} (error_rate=${fmtPct(maxErr.worker_error_rate, 2)}).`;
+        `错误率最高 ${maxErr.worker_key} (error_rate=${fmtPct(maxErr.worker_error_rate, 2)}), ` +
+        `低频状态 stale=${stale}, funding_err=${fmtInt(stats.fundingPullErrors)}, volume_err=${fmtInt(stats.volumePullErrors)}.`;
     }
 
     function renderWorkerCharts(workers) {

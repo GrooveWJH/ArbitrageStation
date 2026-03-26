@@ -74,6 +74,12 @@ curl -s http://127.0.0.1:18777/v1/health | jq '[.workers[] | select(.symbol_coun
 curl -s http://127.0.0.1:18777/v1/stats | jq '.global'
 ```
 
+低频相关字段（`global`）：
+- `funding_last_pull_ms / funding_pull_errors / funding_coverage_ratio`
+- `volume_last_pull_ms / volume_pull_errors / volume_coverage_ratio`
+- `opportunity_snapshot_last_ms / opportunity_items`
+- `funding_stale / volume_stale / opportunity_stale`
+
 ---
 
 ### `GET /v1/latest`
@@ -153,6 +159,66 @@ curl -s http://127.0.0.1:18777/v1/symbols | jq
 
 ---
 
+### `GET /v1/funding/latest`
+读取最新 funding 快照（仅 futures 数据）。
+
+查询参数：
+- `exchange`（可选）
+- `symbol`（可选，如 `BTC/USDT`）
+- `limit`（默认 500，范围 1~5000）
+
+示例：
+```bash
+curl -s "http://127.0.0.1:18777/v1/funding/latest?exchange=binance&limit=5" | jq
+```
+
+返回：
+- `count`
+- `rows[]`：`exchange, symbol, funding_rate, next_funding_ts_ms, updated_at_ms`
+
+---
+
+### `GET /v1/volume/latest`
+读取最新 24h 成交额快照（spot + futures）。
+
+查询参数：
+- `exchange`（可选）
+- `market`（可选，`spot` 或 `futures`）
+- `symbol`（可选）
+- `limit`（默认 500，范围 1~5000）
+
+示例：
+```bash
+curl -s "http://127.0.0.1:18777/v1/volume/latest?exchange=okx&market=futures&limit=5" | jq
+```
+
+返回：
+- `count`
+- `rows[]`：`exchange, market, symbol, volume_24h_quote, updated_at_ms`
+
+---
+
+### `GET /v1/opportunity-inputs`
+读取内存聚合的机会输入快照（`quote + funding + volume`）。
+
+查询参数：
+- `exchange`（可选）
+- `market`（可选，`spot` 或 `futures`）
+- `symbol`（可选）
+- `limit`（默认 500，范围 1~5000）
+
+示例：
+```bash
+curl -s "http://127.0.0.1:18777/v1/opportunity-inputs?exchange=binance&limit=10" | jq
+```
+
+返回：
+- `count`
+- `rows[]`：`exchange, market, symbol, bid1, ask1, mid, spread_bps, funding_rate, volume_24h_quote, freshness_sec, coverage, ts_recv_ms`
+- `source=memory`
+
+---
+
 ### `WS /ws/quotes`
 实时推送最新 quote。
 
@@ -192,3 +258,8 @@ websocat "ws://127.0.0.1:18777/ws/quotes?exchange=binance&market=spot&symbol=BTC
 4. `dropped_events/coalesced_events` 增长
 - 队列发生背压，已启用降压策略。
 - 若长期增长，建议降频/分片/减少 symbols。
+
+5. 低频字段长期 stale
+- `funding_stale=true`：通常是 futures 拉取失败或交易所限流。
+- `volume_stale=true`：通常是 24h ticker 拉取失败。
+- `opportunity_stale=true`：通常是上游 quote/funding/volume 任一链路卡住。

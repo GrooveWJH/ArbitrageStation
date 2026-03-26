@@ -68,7 +68,7 @@
       gap: 10px;
     }
     .kpi {
-      grid-template-columns: repeat(9, minmax(165px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(165px, 1fr));
       margin-bottom: 10px;
     }
     .card {
@@ -221,6 +221,13 @@
       <div class="card"><div class="label">当前内存</div><div class="value" id="kpiMemCur">-</div><div class="hint">memory_current_mb</div></div>
       <div class="card"><div class="label">平均内存</div><div class="value" id="kpiMemAvg">-</div><div class="hint">memory_avg_mb</div></div>
       <div class="card"><div class="label">峰值内存</div><div class="value" id="kpiMemPeak">-</div><div class="hint">memory_peak_mb</div></div>
+      <div class="card"><div class="label">Quote Freshness</div><div class="value" id="kpiQuoteFresh">-</div><div class="hint">staleness_sec</div></div>
+      <div class="card"><div class="label">Funding Freshness</div><div class="value" id="kpiFundingFresh">-</div><div class="hint">funding_freshness_sec</div></div>
+      <div class="card"><div class="label">Funding Coverage</div><div class="value" id="kpiFundingCov">-</div><div class="hint">funding_coverage_ratio</div></div>
+      <div class="card"><div class="label">Volume Freshness</div><div class="value" id="kpiVolumeFresh">-</div><div class="hint">volume_freshness_sec</div></div>
+      <div class="card"><div class="label">Volume Coverage</div><div class="value" id="kpiVolumeCov">-</div><div class="hint">volume_coverage_ratio</div></div>
+      <div class="card"><div class="label">Opportunity Freshness</div><div class="value" id="kpiOppFresh">-</div><div class="hint">opportunity_freshness_sec</div></div>
+      <div class="card"><div class="label">Opportunity Items</div><div class="value" id="kpiOppItems">-</div><div class="hint">opportunity_items</div></div>
     </div>
 
     <div class="section">
@@ -420,7 +427,9 @@
         ['覆盖短板', byNoData ? `${byNoData.worker_id} / no_data=${fmtInt(byNoData.symbol_count_no_data)}` : '-'],
         ['错误最高', byErr ? `${byErr.worker_id} / errors=${fmtInt(byErr.total_errors)}` : '-'],
         ['当前带宽', `wire=${fmt2(g.wire_mbps_est)} Mbps`],
-        ['API降级', `${fmtInt(g.api_read_fallback_hits)} 次 / busy重试 ${fmtInt(g.api_read_busy_retries)} 次`]
+        ['API降级', `${fmtInt(g.api_read_fallback_hits)} 次 / busy重试 ${fmtInt(g.api_read_busy_retries)} 次`],
+        ['低频状态', `funding=${g.funding_stale ? 'stale' : 'ok'} volume=${g.volume_stale ? 'stale' : 'ok'} opp=${g.opportunity_stale ? 'stale' : 'ok'}`],
+        ['低频错误', `funding_err=${fmtInt(g.funding_pull_errors)} volume_err=${fmtInt(g.volume_pull_errors)}`]
       ];
       $('insights').innerHTML = lines.map(([k,v]) => `<div class="k">${k}</div><div class="v mono">${v}</div>`).join('');
     }
@@ -456,6 +465,13 @@
       $('kpiMemCur').textContent = `${fmt2(g.memory_current_mb)} MB`;
       $('kpiMemAvg').textContent = `${fmt2(g.memory_avg_mb)} MB`;
       $('kpiMemPeak').textContent = `${fmt2(g.memory_peak_mb)} MB`;
+      $('kpiQuoteFresh').textContent = `${fmt2(g.staleness_sec)} s`;
+      $('kpiFundingFresh').textContent = `${fmt2(g.funding_freshness_sec)} s`;
+      $('kpiFundingCov').textContent = fmtPct(Number(g.funding_coverage_ratio || 0) * 100);
+      $('kpiVolumeFresh').textContent = `${fmt2(g.volume_freshness_sec)} s`;
+      $('kpiVolumeCov').textContent = fmtPct(Number(g.volume_coverage_ratio || 0) * 100);
+      $('kpiOppFresh').textContent = `${fmt2(g.opportunity_freshness_sec)} s`;
+      $('kpiOppItems').textContent = fmtInt(g.opportunity_items);
 
       const collectorState = payload?.collector_boot_state || (g?.boot_progress?.full_ready ? 'ready' : 'warming');
       $('collector').innerHTML = `<span class="${statusClass(collectorState)}">${collectorState}</span>`;

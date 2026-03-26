@@ -79,6 +79,26 @@ CREATE TABLE IF NOT EXISTS latest_quote (
   PRIMARY KEY(exchange, market, symbol)
 );
 
+CREATE TABLE IF NOT EXISTS latest_funding (
+  exchange TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  funding_rate REAL NOT NULL,
+  next_funding_ts_ms INTEGER,
+  updated_at_ms INTEGER NOT NULL,
+  PRIMARY KEY(exchange, symbol)
+);
+CREATE INDEX IF NOT EXISTS idx_latest_funding_updated ON latest_funding(updated_at_ms);
+
+CREATE TABLE IF NOT EXISTS latest_volume (
+  exchange TEXT NOT NULL,
+  market TEXT NOT NULL,
+  symbol TEXT NOT NULL,
+  volume_24h_quote REAL NOT NULL,
+  updated_at_ms INTEGER NOT NULL,
+  PRIMARY KEY(exchange, market, symbol)
+);
+CREATE INDEX IF NOT EXISTS idx_latest_volume_updated ON latest_volume(updated_at_ms);
+
 CREATE TABLE IF NOT EXISTS stream_health (
   worker_id TEXT PRIMARY KEY,
   exchange TEXT NOT NULL,
