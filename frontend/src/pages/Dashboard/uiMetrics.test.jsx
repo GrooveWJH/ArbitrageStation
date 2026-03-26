@@ -124,6 +124,14 @@ describe('dashboard opportunities UI metrics', () => {
     });
   });
 
+  test('left-side identity columns are left aligned in opportunities table', () => {
+    const columns = buildOppColumns();
+    const keys = ['signal', 'symbol', 'long', 'short'];
+    keys.forEach((key) => {
+      expect(columns.find((col) => col.key === key)?.align).toBe('left');
+    });
+  });
+
   test('annualized column uses high-green and mid-blue palette', () => {
     const columns = buildOppColumns();
     const annualizedCol = columns.find((col) => col.key === 'annualized_pct');

@@ -11,6 +11,15 @@ function signedPct(v, digits = 4) {
   return `${n > 0 ? '+' : ''}${n.toFixed(digits)}%`;
 }
 
+function magnitudePct(v, digits = 4) {
+  const n = Math.abs(Number(v || 0));
+  return `${n.toFixed(digits)}%`;
+}
+
+function annualizedAbsFromRate(ratePct) {
+  return Math.abs(Number(ratePct || 0)) * 3 * 365;
+}
+
 function volumeLabel(v) {
   if (!(v > 0)) return '-';
   if (v >= 1e9) return `${(v / 1e9).toFixed(1)}B`;
@@ -63,13 +72,13 @@ export function buildFundingColumns(exchanges = []) {
       width: 130,
     },
     {
-      title: '年化 (3次/天)', key: 'annualized',
+      title: '年化绝对值 (3次/天)', key: 'annualized',
       render: (_, r) => {
-        const ann = r.rate_pct * 3 * 365;
-        const cls = ann > 0 ? 'kinetic-num-negative' : ann < 0 ? 'kinetic-num-positive' : 'kinetic-num-neutral';
-        return <span className={`kinetic-num ${cls}`}>{signedPct(ann, 1)}</span>;
+        const ann = annualizedAbsFromRate(r.rate_pct);
+        const cls = ann > 0 ? 'kinetic-num-positive' : 'kinetic-num-neutral';
+        return <span className={`kinetic-num ${cls}`}>{magnitudePct(ann, 1)}</span>;
       },
-      sorter: (a, b) => Math.abs(a.rate_pct) - Math.abs(b.rate_pct),
+      sorter: (a, b) => annualizedAbsFromRate(a.rate_pct) - annualizedAbsFromRate(b.rate_pct),
       width: 140,
     },
     {

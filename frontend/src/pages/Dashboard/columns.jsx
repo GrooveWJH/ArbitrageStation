@@ -41,7 +41,7 @@ export function buildOppColumns() {
       title: '信号',
       key: 'signal',
       width: 140,
-      align: 'center',
+      align: 'left',
       render: (_, r) => {
         const signal = getOpportunitySignal(r);
         if (signal === 'risk') {
@@ -66,10 +66,11 @@ export function buildOppColumns() {
       dataIndex: 'symbol',
       key: 'symbol',
       width: 184,
+      align: 'left',
       render: (v) => <Tag color="blue" className="kinetic-pair-chip kinetic-opp-pair-chip">{formatPairBase(v)}</Tag>,
     },
-    { title: '做多腿', key: 'long', render: (_, r) => <LongCell record={r} /> },
-    { title: '做空腿', key: 'short', render: (_, r) => <ShortCell record={r} /> },
+    { title: '做多腿', key: 'long', align: 'left', render: (_, r) => <LongCell record={r} /> },
+    { title: '做空腿', key: 'short', align: 'left', render: (_, r) => <ShortCell record={r} /> },
     {
       title: '费率差',
       dataIndex: 'rate_diff_pct',
