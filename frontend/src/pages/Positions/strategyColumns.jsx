@@ -1,6 +1,7 @@
 import React from 'react';
 import { Button, Popconfirm, Space, Tag, Tooltip } from 'antd';
 import { CloseCircleOutlined, EyeOutlined } from '@ant-design/icons';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 import { fmtTime } from '../../utils/time';
 import { TermLabel } from '../../components/TermHint';
 
@@ -17,8 +18,22 @@ export function buildStrategyColumns({ openDetail, handleClose, statusTag, quali
       render: (v) => <Tag color={v === 'cross_exchange' ? 'purple' : 'cyan'}>{v === 'cross_exchange' ? '跨所套利' : '现货对冲'}</Tag>,
     },
     { title: '交易对', dataIndex: 'symbol', key: 'symbol', minWidth: 140, render: (v) => <Tag color="blue">{v}</Tag> },
-    { title: '做多交易所', dataIndex: 'long_exchange', key: 'long_exchange', width: 132, minWidth: 132 },
-    { title: '做空交易所', dataIndex: 'short_exchange', key: 'short_exchange', width: 132, minWidth: 132 },
+    {
+      title: '做多交易所',
+      dataIndex: 'long_exchange',
+      key: 'long_exchange',
+      width: 132,
+      minWidth: 132,
+      render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.long_exchange_id} />,
+    },
+    {
+      title: '做空交易所',
+      dataIndex: 'short_exchange',
+      key: 'short_exchange',
+      width: 132,
+      minWidth: 132,
+      render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.short_exchange_id} />,
+    },
     {
       title: <TermLabel label="当前年化" term="current_annualized" />,
       dataIndex: 'current_annualized',

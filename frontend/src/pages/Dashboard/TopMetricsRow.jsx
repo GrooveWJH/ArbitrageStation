@@ -10,7 +10,9 @@ function fmtCurrency(v) {
 export default function TopMetricsRow({ pnlSummary, accountSummary, emergencyCount = 0 }) {
   const totalEquity = accountSummary?.totalUsdt ?? 0;
   const openExposure = accountSummary?.knownFuturesUsdt ?? 0;
-  const riskWarnings = Number(accountSummary?.warningExchangeCount || 0) + emergencyCount;
+  const riskWarnings = Number(accountSummary?.warningExchangeCount || 0)
+    + Number(accountSummary?.errorExchangeCount || 0)
+    + emergencyCount;
   const riskLabel = riskWarnings > 0 ? '关注' : '正常';
   const riskTone = riskWarnings > 0 ? 'warning' : 'healthy';
   const pnlDelta = pnlSummary?.total_pnl_usdt;

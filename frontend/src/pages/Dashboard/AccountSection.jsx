@@ -1,11 +1,13 @@
 import React from 'react';
 import { ReloadOutlined, WalletOutlined } from '@ant-design/icons';
 import { Line } from '@ant-design/charts';
-import { Button, Card, Col, Progress, Row, Space, Spin, Tag, Tooltip } from 'antd';
+import { Alert, Button, Card, Col, Progress, Row, Space, Spin, Tag, Tooltip } from 'antd';
 
 export default function AccountSection({
   accountLoading,
   accountData,
+  accountApiUnconfigured,
+  tradingApiConfiguredCount,
   accountSummary,
   accountTrendData,
   accountTrendConfig,
@@ -42,6 +44,15 @@ export default function AccountSection({
       )}
     >
       <Spin spinning={accountLoading}>
+        {accountApiUnconfigured && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message="未配置交易账户 API（机会展示不受影响）"
+            description="行情与机会由统一 marketdata 源提供；如需下单、持仓和账户资产，请在设置页补全交易所 API。"
+          />
+        )}
         {accountData.length === 0 && !accountLoading ? (
           <span style={{ color: '#aaa' }}>暂无数据，请点击刷新</span>
         ) : (
@@ -58,7 +69,7 @@ export default function AccountSection({
                     ${formatUsdt(accountSummary.totalUsdt, 2)}
                   </div>
                   <div className="kpi-sub">
-                    {accountSummary.exchangeCount} 个交易所
+                    {accountSummary.exchangeCount} 个交易所 / API 已配置 {tradingApiConfiguredCount}
                   </div>
                 </Card>
               </Col>

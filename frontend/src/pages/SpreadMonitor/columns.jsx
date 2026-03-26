@@ -9,6 +9,7 @@ import {
   LineChartOutlined,
   ThunderboltOutlined,
 } from '@ant-design/icons';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 import SortHeader from './SortHeader';
 import { fmtCountdown, fmtVolume } from './utils';
 
@@ -17,6 +18,19 @@ function renderMarkPrice(v) {
   if (v >= 1000) return `$${v.toLocaleString(undefined, { maximumFractionDigits: 2 })}`;
   if (v >= 1) return `$${v.toFixed(4)}`;
   return `$${v.toFixed(8)}`;
+}
+
+function spreadToneClass(v) {
+  if (v >= 0.1) return 'is-critical';
+  if (v >= 0.02) return 'is-warning';
+  return 'is-normal';
+}
+
+function volumeToneClass(v) {
+  if (v >= 1e7) return 'is-xl';
+  if (v >= 1e6) return 'is-high';
+  if (v >= 1e5) return 'is-mid';
+  return 'is-low';
 }
 
 export function buildColumns({
@@ -41,23 +55,20 @@ export function buildColumns({
       width: 200,
       onCell: (row) => ({ rowSpan: row._rowSpan }),
       render: (sym, row) => (
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontWeight: 600, fontSize: 13 }}>{sym}</span>
+        <div className="kinetic-spread-symbol-cell">
+          <div className="kinetic-spread-symbol-main">
+            <span className="kinetic-spread-symbol-text">{sym}</span>
             <Tooltip title="查看价差K线">
               <LineChartOutlined
-                style={{ color: '#1677ff', cursor: 'pointer', fontSize: 14 }}
+                className="kinetic-spread-kline-trigger"
                 onClick={() => openKline({ symbol: sym, exchanges: row._groupExchanges })}
               />
             </Tooltip>
           </div>
-          <Tag
-            color={row._maxSpreadPct >= 0.1 ? 'red' : row._maxSpreadPct >= 0.02 ? 'orange' : 'default'}
-            style={{ marginTop: 4, fontSize: 11 }}
-          >
+          <span className={`kinetic-spread-spread-pill ${spreadToneClass(row._maxSpreadPct)}`}>
             价差 {row._maxSpreadPct.toFixed(4)}%
-          </Tag>
-          <div style={{ color: '#aaa', fontSize: 11, marginTop: 2 }}>
+          </span>
+          <div className="kinetic-spread-symbol-meta">
             {row._exchangeCount} 个交易所
           </div>
         </div>
@@ -74,9 +85,9 @@ export function buildColumns({
       align: 'center',
       onCell: (row) => ({ rowSpan: row._rowSpan }),
       render: (v) => {
-        if (v === 'aligned') return <Tag color="green" style={{ fontSize: 11 }}>一致 ✓</Tag>;
-        if (v === 'opposed') return <Tag color="red" style={{ fontSize: 11 }}>反向 ✗</Tag>;
-        if (v === 'neutral') return <Tag color="default" style={{ fontSize: 11 }}>中性</Tag>;
+        if (v === 'aligned') return <Tag className="kinetic-spread-align-tag is-aligned">一致 ✓</Tag>;
+        if (v === 'opposed') return <Tag className="kinetic-spread-align-tag is-opposed">反向 ✗</Tag>;
+        if (v === 'neutral') return <Tag className="kinetic-spread-align-tag is-neutral">中性</Tag>;
         return '—';
       },
     },
@@ -86,10 +97,10 @@ export function buildColumns({
       width: 120,
       render: (name, row) => (
         <Space size={4} wrap>
-          <span style={{ fontWeight: 500 }}>{name}</span>
+          <ExchangeLogoName className="kinetic-spread-exchange-name" name={name} exchangeId={row.exchange_id} />
           {row.is_highest_freq && (
             <Tooltip title={`最高频率：${row.periods_per_day}次/天`}>
-              <Tag color="orange" icon={<ThunderboltOutlined />} style={{ fontSize: 10 }}>
+              <Tag className="kinetic-spread-highfreq-tag" icon={<ThunderboltOutlined />}>
                 高频
               </Tag>
             </Tooltip>
@@ -110,9 +121,14 @@ export function buildColumns({
       width: 100,
       align: 'right',
       render: (v) => {
-        if (v == null) return '—';
-        const color = v === 0 ? '#999' : v >= 0.05 ? '#cf1322' : v >= 0.01 ? '#d46b08' : '#52c41a';
-        return <span style={{ color, fontWeight: v > 0 ? 600 : 400 }}>{v === 0 ? '基准' : `+${v.toFixed(4)}%`}</span>;
+        if (v == null) return <span className="kinetic-num kinetic-num-muted">—</span>;
+        if (v === 0) return <span className="kinetic-num kinetic-num-muted">基准</span>;
+        const toneClass = v >= 0.05
+          ? 'kinetic-num-negative'
+          : v >= 0.01
+            ? 'kinetic-num-warning'
+            : 'kinetic-num-strong';
+        return <span className={`kinetic-num ${toneClass}`}>+{v.toFixed(4)}%</span>;
       },
     },
     {
@@ -121,8 +137,15 @@ export function buildColumns({
       width: 100,
       align: 'right',
       render: (v) => {
-        const color = v > 0.05 ? '#3f8600' : v > 0 ? '#52c41a' : v < -0.05 ? '#cf1322' : v < 0 ? '#ff7875' : '#999';
-        return <span style={{ color, fontWeight: 600 }}>{v >= 0 ? '+' : ''}{v.toFixed(4)}%</span>;
+        if (v == null) return <span className="kinetic-num kinetic-num-muted">—</span>;
+        const toneClass = v > 0.05
+          ? 'kinetic-num-positive'
+          : v > 0
+            ? 'kinetic-num-positive'
+            : v < 0
+              ? 'kinetic-num-negative'
+              : 'kinetic-num-muted';
+        return <span className={`kinetic-num ${toneClass}`}>{v >= 0 ? '+' : ''}{v.toFixed(4)}%</span>;
       },
     },
     {
@@ -136,7 +159,11 @@ export function buildColumns({
         return (
           <Badge
             status={isClose ? 'processing' : 'default'}
-            text={<span style={{ color: isClose ? '#1677ff' : undefined, fontWeight: isClose ? 600 : 400 }}>{fmtCountdown(remaining)}</span>}
+            text={(
+              <span className={`kinetic-countdown kinetic-spread-settlement ${isClose ? 'is-close' : 'is-normal'}`}>
+                {fmtCountdown(remaining)}
+              </span>
+            )}
           />
         );
       },
@@ -148,7 +175,7 @@ export function buildColumns({
       align: 'center',
       render: (ppd, row) => {
         const hours = ppd > 0 ? (24 / ppd).toFixed(0) : '—';
-        return <Tag color={row.is_highest_freq ? 'orange' : 'default'}>{hours}h · {ppd}次/天</Tag>;
+        return <Tag className={`kinetic-spread-cycle-tag ${row.is_highest_freq ? 'is-highfreq' : ''}`}>{hours}h · {ppd}次/天</Tag>;
       },
     },
     {
@@ -156,7 +183,11 @@ export function buildColumns({
       dataIndex: 'taker_fee_pct',
       width: 90,
       align: 'right',
-      render: (v) => <span style={{ color: '#666' }}>{v?.toFixed(4)}%</span>,
+      render: (v) => (
+        <span className="kinetic-num kinetic-num-muted">
+          {typeof v === 'number' ? `${v.toFixed(4)}%` : '—'}
+        </span>
+      ),
     },
     {
       title: (
@@ -175,10 +206,11 @@ export function buildColumns({
       onCell: (row) => ({ rowSpan: row._rowSpan }),
       render: (_, row) => {
         const vol = row._minVolume;
-        const color = vol >= 1e7 ? '#3f8600' : vol >= 1e6 ? '#52c41a' : vol >= 1e5 ? '#d46b08' : '#cf1322';
         return (
           <Tooltip title={`双腿最小成交量：${fmtVolume(vol)}`}>
-            <span style={{ color, fontWeight: 600 }}>{fmtVolume(vol)}</span>
+            <span className={`kinetic-num kinetic-spread-volume ${volumeToneClass(vol || 0)}`}>
+              {fmtVolume(vol)}
+            </span>
           </Tooltip>
         );
       },

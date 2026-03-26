@@ -23,7 +23,7 @@ import {
 
 const PANEL_ITEMS = [
   { key: 'risk', title: '风控规则', icon: <SafetyOutlined />, render: () => <RiskRulesTab /> },
-  { key: 'exchange', title: '交易所 API', icon: <GlobalOutlined />, render: () => <ExchangeTab /> },
+  { key: 'exchange', title: '交易与账户 API', icon: <GlobalOutlined />, render: () => <ExchangeTab /> },
   { key: 'email', title: '通知配置', icon: <MailOutlined />, render: () => <EmailTab /> },
   { key: 'app', title: '应用配置', icon: <SettingOutlined />, render: () => <AppConfigTab /> },
 ];

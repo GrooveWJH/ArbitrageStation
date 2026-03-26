@@ -11,6 +11,7 @@ import {
   Table,
 } from 'antd';
 import { ThunderboltOutlined } from '@ant-design/icons';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 
 export default function OpenStrategyModal({
   open,
@@ -36,8 +37,16 @@ export default function OpenStrategyModal({
             rowKey="symbol"
             columns={[
               { title: '交易对', dataIndex: 'symbol' },
-              { title: '做多交易所', dataIndex: 'long_exchange' },
-              { title: '做空交易所', dataIndex: 'short_exchange' },
+              {
+                title: '做多交易所',
+                dataIndex: 'long_exchange',
+                render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.long_exchange_id} />,
+              },
+              {
+                title: '做空交易所',
+                dataIndex: 'short_exchange',
+                render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.short_exchange_id} />,
+              },
               { title: '年化', dataIndex: 'annualized_pct', render: (v) => `${v.toFixed(1)}%` },
               {
                 title: '',
@@ -64,8 +73,16 @@ export default function OpenStrategyModal({
             }
             columns={[
               { title: '交易对', dataIndex: 'symbol' },
-              { title: '现货交易所', dataIndex: 'long_exchange' },
-              { title: '合约交易所', dataIndex: 'short_exchange' },
+              {
+                title: '现货交易所',
+                dataIndex: 'long_exchange',
+                render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.long_exchange_id ?? r.spot_exchange_id} />,
+              },
+              {
+                title: '合约交易所',
+                dataIndex: 'short_exchange',
+                render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.short_exchange_id ?? r.perp_exchange_id} />,
+              },
               { title: '费率', dataIndex: 'rate_pct', render: (v) => `${v > 0 ? '+' : ''}${v.toFixed(4)}%` },
               { title: '年化', dataIndex: 'annualized_pct', render: (v) => `${v.toFixed(1)}%` },
               {

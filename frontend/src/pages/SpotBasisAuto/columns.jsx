@@ -4,6 +4,7 @@ import {
   Tag,
   Typography,
 } from 'antd';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 import {
   cycleModeTag,
   cycleStatusColor,
@@ -35,7 +36,9 @@ export const createOpportunityColumns = () => [
     width: 130,
     render: (_, r) => (
       <div>
-        <Tag color="orange">{r.perp_exchange_name}</Tag>
+        <Tag color="orange" className="kinetic-exchange-chip">
+          <ExchangeLogoName name={r.perp_exchange_name} exchangeId={r.perp_exchange_id} />
+        </Tag>
         <div style={{ color: '#64748b', fontSize: 12 }}>{fmtPrice(r.perp_price)}</div>
       </div>
     ),
@@ -46,7 +49,9 @@ export const createOpportunityColumns = () => [
     width: 130,
     render: (_, r) => (
       <div>
-        <Tag color="green">{r.spot_exchange_name}</Tag>
+        <Tag color="green" className="kinetic-exchange-chip">
+          <ExchangeLogoName name={r.spot_exchange_name} exchangeId={r.spot_exchange_id} />
+        </Tag>
         <div style={{ color: '#64748b', fontSize: 12 }}>{fmtPrice(r.spot_price)}</div>
       </div>
     ),
@@ -120,7 +125,7 @@ export const createExchangeFundsColumns = () => [
     width: 120,
     render: (v, r) => (
       <Space direction="vertical" size={0}>
-        <span style={{ fontWeight: 600 }}>{v}</span>
+        <ExchangeLogoName name={v} exchangeId={r.exchange_id} />
         {r.unified_account ? <Tag color="blue">统一账户</Tag> : <Tag>分账户</Tag>}
       </Space>
     ),

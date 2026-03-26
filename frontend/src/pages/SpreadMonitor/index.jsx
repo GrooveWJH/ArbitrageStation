@@ -26,6 +26,10 @@ import { useSpreadMonitorGroupsQuery } from '../../services/queries/spreadMonito
 import { getApiErrorMessages } from '../../utils/error';
 import { buildColumns } from './columns';
 import KlineModal from './KlineModal';
+import {
+  composeSpreadRowClass,
+  isWithinSpreadGroup,
+} from './rowHover';
 
 function computeFundingAlignment(exchanges) {
   const withPrices = exchanges.filter((e) => e.mark_price != null);
@@ -61,6 +65,7 @@ export default function SpreadMonitor({ wsData }) {
   const [minVolume, setMinVolume] = useState(0);
   const [sortField, setSortField] = useState('spread');
   const [sortDir, setSortDir] = useState('desc');
+  const [hoveredGroupKey, setHoveredGroupKey] = useState(null);
 
   const [klineModal, setKlineModal] = useState(null);
   const [klineTf, setKlineTf] = useState('1h');
@@ -150,6 +155,7 @@ export default function SpreadMonitor({ wsData }) {
       g.exchanges.forEach((ex, i) => {
         out.push({
           _key: `${g.symbol}__${ex.exchange_id}`,
+          _groupKey: g.symbol,
           _symbol: g.symbol,
           _maxSpreadPct: g.max_spread_pct,
           _minVolume: g.min_volume_usd,
@@ -174,10 +180,11 @@ export default function SpreadMonitor({ wsData }) {
   const maxSpread = filtered.length > 0
     ? (sortField === 'spread' && sortDir === 'desc' ? filtered[0].max_spread_pct : Math.max(...filtered.map((g) => g.max_spread_pct)))
     : 0;
+  const maxSpreadTone = maxSpread >= 0.1 ? 'is-alert' : 'is-watch';
 
   return (
     <div className="kinetic-page kinetic-spread">
-      <Row gutter={16} style={{ marginBottom: 16 }}>
+      <Row gutter={16} className="kinetic-spread-metrics-row">
         <Col span={6}>
           <Card className="kinetic-panel-card" size="small">
             <Statistic title="监控币对数" value={symbolCount} />
@@ -191,17 +198,17 @@ export default function SpreadMonitor({ wsData }) {
         <Col span={6}>
           <Card className="kinetic-panel-card" size="small">
             <Statistic
+              className={`kinetic-spread-stat ${maxSpreadTone}`}
               title="最大价差"
               value={maxSpread}
               precision={4}
               suffix="%"
-              valueStyle={{ color: maxSpread >= 0.1 ? '#cf1322' : '#d46b08' }}
             />
           </Card>
         </Col>
         <Col span={6}>
           <Card className="kinetic-panel-card" size="small">
-            <div style={{ color: '#888', fontSize: 12 }}>
+            <div className="kinetic-mini-note kinetic-spread-defs">
               <div>价差 = (该所价格 − 最低价) / 最低价</div>
               <div>高频交易所 = 组内结算最频繁的所</div>
               <div>24h成交量 = 双腿中较小值</div>
@@ -210,7 +217,7 @@ export default function SpreadMonitor({ wsData }) {
         </Col>
       </Row>
 
-      <Card className="kinetic-panel-card" size="small" style={{ marginBottom: 16 }} bodyStyle={{ padding: '8px 16px' }}>
+      <Card className="kinetic-panel-card kinetic-spread-filter-card" size="small">
         <Row gutter={16} align="middle">
           <Col>
             <Input
@@ -219,11 +226,11 @@ export default function SpreadMonitor({ wsData }) {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               allowClear
-              style={{ width: 200 }}
+              className="kinetic-spread-search-input"
             />
           </Col>
           <Col>
-            <span style={{ color: '#888', marginRight: 8 }}>最小价差 ≥</span>
+            <span className="kinetic-mini-note kinetic-spread-filter-label">最小价差 ≥</span>
             <InputNumber
               value={minSpread}
               onChange={(v) => setMinSpread(v || 0)}
@@ -231,11 +238,11 @@ export default function SpreadMonitor({ wsData }) {
               step={0.01}
               precision={3}
               suffix="%"
-              style={{ width: 100 }}
+              className="kinetic-spread-filter-number"
             />
           </Col>
           <Col>
-            <span style={{ color: '#888', marginRight: 8 }}>最小成交量 ≥</span>
+            <span className="kinetic-mini-note kinetic-spread-filter-label">最小成交量 ≥</span>
             <InputNumber
               value={minVolume}
               onChange={(v) => setMinVolume(v || 0)}
@@ -243,7 +250,7 @@ export default function SpreadMonitor({ wsData }) {
               step={100000}
               formatter={(v) => (v ? `$${Number(v).toLocaleString()}` : '')}
               parser={(v) => (v ? Number(v.replace(/[^0-9.]/g, '')) : 0)}
-              style={{ width: 130 }}
+              className="kinetic-spread-filter-number is-volume"
             />
           </Col>
           <Col flex="1" />
@@ -262,13 +269,13 @@ export default function SpreadMonitor({ wsData }) {
             {(() => {
               const staleSecs = lastUpdated ? Math.floor((nowTick - lastUpdated) / 1000) : null;
               const isStale = staleSecs !== null && staleSecs > 3;
-              const color = !lastUpdated ? '#aaa' : isStale ? '#cf1322' : '#52c41a';
               const statusDot = !lastUpdated ? 'default' : isStale ? 'error' : 'processing';
               const label = !lastUpdated ? '加载中...' : staleSecs === 0 ? '实时' : `${staleSecs}s 前`;
+              const toneClass = !lastUpdated ? 'is-idle' : isStale ? 'is-stale' : 'is-live';
               return (
                 <Space size={6}>
                   <Badge status={statusDot} />
-                  <span style={{ color, fontSize: 12 }}>{label}</span>
+                  <span className={`kinetic-spread-tick-label ${toneClass}`}>{label}</span>
                 </Space>
               );
             })()}
@@ -276,8 +283,9 @@ export default function SpreadMonitor({ wsData }) {
         </Row>
       </Card>
 
-      <Card className="kinetic-panel-card" size="small" bodyStyle={{ padding: 0 }}>
+      <Card className="kinetic-panel-card kinetic-spread-table-card" size="small">
         <Table
+          className="kinetic-spread-table"
           rowKey="_key"
           dataSource={rows}
           columns={columns}
@@ -285,14 +293,19 @@ export default function SpreadMonitor({ wsData }) {
           pagination={{ pageSize: 100, showSizeChanger: true, pageSizeOptions: ['50', '100', '200'] }}
           size="small"
           scroll={{ x: 1000 }}
-          rowClassName={(row) => (row.is_highest_freq ? 'row-highest-freq' : '')}
+          rowClassName={(row) => composeSpreadRowClass(row, hoveredGroupKey)}
+          onRow={(row) => ({
+            'data-group-key': row._groupKey,
+            onMouseEnter: () => {
+              setHoveredGroupKey(row._groupKey);
+            },
+            onMouseLeave: (event) => {
+              if (isWithinSpreadGroup(row._groupKey, event.relatedTarget)) return;
+              setHoveredGroupKey((current) => (current === row._groupKey ? null : current));
+            },
+          })}
         />
       </Card>
-
-      <style>{`
-        .row-highest-freq td { background: #fff7e6 !important; }
-        .row-highest-freq:hover td { background: #fef3d0 !important; }
-      `}</style>
 
       <KlineModal
         klineModal={klineModal}

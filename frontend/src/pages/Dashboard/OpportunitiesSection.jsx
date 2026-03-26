@@ -1,6 +1,7 @@
 import React from 'react';
 import { ThunderboltOutlined } from '@ant-design/icons';
 import { Card, InputNumber, Space, Table, Tag } from 'antd';
+import { getOpportunitySignal } from './utils';
 
 export default function OpportunitiesSection({
   opportunities,
@@ -13,6 +14,13 @@ export default function OpportunitiesSection({
   spotOppColumns,
   compact = false,
 }) {
+  const compactRowClassName = (record) => {
+    const signal = getOpportunitySignal(record);
+    if (signal === 'hot') return 'opp-row-hot';
+    if (signal === 'risk') return 'opp-row-risk';
+    return '';
+  };
+
   if (compact) {
     return (
       <Card
@@ -20,28 +28,34 @@ export default function OpportunitiesSection({
         title={<Space><ThunderboltOutlined style={{ color: '#7bd0ff' }} /><span>实时套利机会</span></Space>}
         style={{ marginBottom: 0 }}
         extra={(
-          <Space>
+          <Space className="kinetic-opp-toolbar">
             <span className="kinetic-mini-note">最小24h量</span>
             <InputNumber
               size="small"
               min={0}
               step={1000000}
-              style={{ width: 130 }}
+              style={{ width: 144 }}
               value={minVolume || null}
               placeholder="不限"
               formatter={(v) => (v ? `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',') : '')}
               onChange={onMinVolumeChange}
             />
+            <Tag className="kinetic-row-signal-tag is-hot">高收益</Tag>
+            <Tag className="kinetic-row-signal-tag is-risk">价差风险</Tag>
             <Tag color="green">{opportunities.length} 条</Tag>
           </Space>
         )}
       >
         <Table
+          className="kinetic-opportunities-table"
           dataSource={opportunities}
           columns={oppColumns}
           rowKey="symbol"
           size="small"
-          pagination={{ pageSize: 8, showSizeChanger: false }}
+          tableLayout="fixed"
+          sticky
+          rowClassName={compactRowClassName}
+          pagination={{ pageSize: 20, showSizeChanger: false }}
           scroll={{ x: 900 }}
         />
       </Card>

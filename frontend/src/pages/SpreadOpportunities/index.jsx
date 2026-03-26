@@ -3,6 +3,7 @@ import { Card, Table, Tag, Tooltip, Badge, Space, Button, Row, Col, Statistic, E
 import { ReloadOutlined, ThunderboltOutlined, RiseOutlined } from '@ant-design/icons';
 import useNowTick from '../../hooks/useNowTick';
 import { useSpreadOpportunitiesQuery } from '../../services/queries/spreadMonitorQueries';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 
 function fmtCountdown(secs) {
   if (secs == null) return '—';
@@ -87,7 +88,9 @@ export default function SpreadOpportunities({ wsData }) {
       width: 170,
       render: (ex) => (
         <div>
-          <div style={{ fontWeight: 600 }}>{ex.exchange_name}</div>
+          <div style={{ fontWeight: 600 }}>
+            <ExchangeLogoName name={ex.exchange_name} exchangeId={ex.exchange_id} />
+          </div>
           <div style={{ fontSize: 11, color: '#888' }}>
             ${ex.mark_price >= 1000
               ? ex.mark_price.toLocaleString(undefined, { maximumFractionDigits: 2 })
@@ -107,7 +110,9 @@ export default function SpreadOpportunities({ wsData }) {
       width: 170,
       render: (ex) => (
         <div>
-          <div style={{ fontWeight: 600 }}>{ex.exchange_name}</div>
+          <div style={{ fontWeight: 600 }}>
+            <ExchangeLogoName name={ex.exchange_name} exchangeId={ex.exchange_id} />
+          </div>
           <div style={{ fontSize: 11, color: '#888' }}>
             ${ex.mark_price >= 1000
               ? ex.mark_price.toLocaleString(undefined, { maximumFractionDigits: 2 })

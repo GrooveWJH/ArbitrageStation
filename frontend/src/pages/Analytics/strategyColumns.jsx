@@ -1,5 +1,6 @@
 import React from 'react';
 import { Space, Tag, Tooltip } from 'antd';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 import { TermLabel } from '../../components/TermHint';
 import { fmtTime } from '../../utils/time';
 import { PnlText, QualityTag, StatusTag } from './renderers';
@@ -9,8 +10,18 @@ export function buildStrategyColumns() {
     { title: 'ID', dataIndex: 'strategy_id', width: 72 },
     { title: '类型', dataIndex: 'strategy_type', width: 120 },
     { title: '交易对', dataIndex: 'symbol', width: 150, render: (v) => <Tag color="blue">{v}</Tag> },
-    { title: '做多', dataIndex: 'long_exchange', width: 110 },
-    { title: '做空', dataIndex: 'short_exchange', width: 110 },
+    {
+      title: '做多',
+      dataIndex: 'long_exchange',
+      width: 110,
+      render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.long_exchange_id} />,
+    },
+    {
+      title: '做空',
+      dataIndex: 'short_exchange',
+      width: 110,
+      render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.short_exchange_id} />,
+    },
     { title: <TermLabel label="保证金" term="capital_base" />, dataIndex: 'initial_margin_usd', width: 95, render: (v) => `$${Number(v || 0).toFixed(2)}` },
     {
       title: <TermLabel label="价差" term="spread_pnl" />,

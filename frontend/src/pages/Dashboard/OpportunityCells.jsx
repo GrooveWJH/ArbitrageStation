@@ -1,7 +1,14 @@
 import React from 'react';
 import { Space, Tag } from 'antd';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 import { usePriceDiff } from './priceDiffStore';
 import { formatCountdown, periodLabel } from './utils';
+
+function priceDiffTone(value) {
+  if (Math.abs(value) > 0.3) return 'kinetic-num-negative';
+  if (Math.abs(value) > 0.1) return 'kinetic-num-warning';
+  return 'kinetic-num-positive';
+}
 
 export function LongCell({ record }) {
   const pd = usePriceDiff(record.symbol, record.long_exchange_id, record.short_exchange_id);
@@ -10,17 +17,20 @@ export function LongCell({ record }) {
   const isLower = lp != null && sp != null && lp < sp;
 
   return (
-    <div style={isLower ? { background: '#fff7e6', borderRadius: 4, padding: '2px 6px' } : {}}>
+    <div className={`kinetic-leg-cell ${isLower ? 'is-mismatch' : ''}`}>
       <Space size={4}>
-        <Tag style={isLower ? { borderColor: '#fa8c16', color: '#fa8c16' } : {}}>{record.long_exchange}</Tag>
-        <span style={{ color: record.long_rate_pct < 0 ? '#3f8600' : '#cf1322', fontSize: 12 }}>
+        <Tag className={`kinetic-exchange-chip ${isLower ? 'is-warning' : ''}`}>
+          <ExchangeLogoName name={record.long_exchange} exchangeId={record.long_exchange_id} />
+        </Tag>
+        <span className={`kinetic-num ${record.long_rate_pct < 0 ? 'kinetic-num-positive' : 'kinetic-num-negative'}`}>
+          {record.long_rate_pct > 0 ? '+' : ''}
           {record.long_rate_pct?.toFixed(4)}%
         </span>
       </Space>
-      <div style={{ fontSize: 11, color: isLower ? '#fa8c16' : '#aaa', marginTop: 2 }}>
+      <div className={`kinetic-leg-sub ${isLower ? 'is-warning' : ''}`}>
         {periodLabel(lp)} · {formatCountdown(record.long_next_funding_time)}
       </div>
-      {pd?.long_price ? <div style={{ color: '#bbb', fontSize: 11 }}>${pd.long_price.toLocaleString()}</div> : null}
+      {pd?.long_price ? <div className="kinetic-price-note">${pd.long_price.toLocaleString()}</div> : null}
     </div>
   );
 }
@@ -32,15 +42,20 @@ export function ShortCell({ record }) {
   const isLower = sp != null && lp != null && sp < lp;
 
   return (
-    <div style={isLower ? { background: '#fff7e6', borderRadius: 4, padding: '2px 6px' } : {}}>
+    <div className={`kinetic-leg-cell ${isLower ? 'is-mismatch' : ''}`}>
       <Space size={4}>
-        <Tag style={isLower ? { borderColor: '#fa8c16', color: '#fa8c16' } : {}}>{record.short_exchange}</Tag>
-        <span style={{ color: '#cf1322', fontSize: 12 }}>{record.short_rate_pct?.toFixed(4)}%</span>
+        <Tag className={`kinetic-exchange-chip ${isLower ? 'is-warning' : ''}`}>
+          <ExchangeLogoName name={record.short_exchange} exchangeId={record.short_exchange_id} />
+        </Tag>
+        <span className="kinetic-num kinetic-num-negative">
+          {record.short_rate_pct > 0 ? '+' : ''}
+          {record.short_rate_pct?.toFixed(4)}%
+        </span>
       </Space>
-      <div style={{ fontSize: 11, color: isLower ? '#fa8c16' : '#aaa', marginTop: 2 }}>
+      <div className={`kinetic-leg-sub ${isLower ? 'is-warning' : ''}`}>
         {periodLabel(sp)} · {formatCountdown(record.short_next_funding_time)}
       </div>
-      {pd?.short_price ? <div style={{ color: '#bbb', fontSize: 11 }}>${pd.short_price.toLocaleString()}</div> : null}
+      {pd?.short_price ? <div className="kinetic-price-note">${pd.short_price.toLocaleString()}</div> : null}
     </div>
   );
 }
@@ -48,11 +63,10 @@ export function ShortCell({ record }) {
 export function PriceDiffCell({ record }) {
   const pd = usePriceDiff(record.symbol, record.long_exchange_id, record.short_exchange_id);
   const value = pd?.price_diff_pct ?? record.price_diff_pct;
-  if (value == null) return <span style={{ color: '#ccc' }}>-</span>;
+  if (value == null) return <span className="kinetic-num kinetic-num-muted">-</span>;
 
-  const color = Math.abs(value) > 0.3 ? '#cf1322' : Math.abs(value) > 0.1 ? '#fa8c16' : '#3f8600';
   return (
-    <span style={{ color, fontWeight: 600 }}>
+    <span className={`kinetic-num ${priceDiffTone(value)}`}>
       {value > 0 ? '+' : ''}
       {value.toFixed(4)}%
     </span>

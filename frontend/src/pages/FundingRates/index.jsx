@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Card, Table, Tag, Input, InputNumber, Select, Space, Button, Row, Col, Tooltip, Badge
+  Card, Table, Input, InputNumber, Select, Space, Button, Row, Col, Badge
 } from 'antd';
 import { SearchOutlined, ReloadOutlined, FilterOutlined } from '@ant-design/icons';
 import {
   useFundingRateExchangesQuery,
   useFundingRatesQuery,
 } from '../../services/queries/fundingRateQueries';
-import { fmtTime } from '../../utils/time';
+import { buildFundingColumns } from './columns';
 
 const EMPTY_FILTERS = {
   symbol: '',
@@ -38,6 +38,8 @@ export default function FundingRates({ wsData }) {
   const [rates, setRates] = useState([]);
   const [filters, setFilters] = useState(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState(EMPTY_FILTERS);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
   const exchangesQuery = useFundingRateExchangesQuery();
   const ratesQuery = useFundingRatesQuery(appliedFilters);
   const exchanges = exchangesQuery.data || [];
@@ -49,6 +51,11 @@ export default function FundingRates({ wsData }) {
     }
   }, [ratesQuery.data]);
 
+  useEffect(() => {
+    const maxPage = Math.max(1, Math.ceil(rates.length / pageSize));
+    if (page > maxPage) setPage(maxPage);
+  }, [rates.length, page, pageSize]);
+
   // Real-time update from WS
   useEffect(() => {
     if (wsData?.type === 'funding_rates') {
@@ -58,72 +65,16 @@ export default function FundingRates({ wsData }) {
 
   const applyFilters = () => {
     setAppliedFilters(filters);
+    setPage(1);
   };
 
   const resetFilters = () => {
     setFilters(EMPTY_FILTERS);
     setAppliedFilters(EMPTY_FILTERS);
+    setPage(1);
   };
 
-  const columns = [
-    {
-      title: '交易对', dataIndex: 'symbol', key: 'symbol', fixed: 'left', width: 160,
-      render: v => <Tag color="blue" style={{ fontWeight: 600 }}>{v}</Tag>,
-      sorter: (a, b) => a.symbol.localeCompare(b.symbol),
-    },
-    {
-      title: '交易所', dataIndex: 'exchange_name', key: 'exchange_name', width: 120,
-      render: v => <Tag>{v}</Tag>,
-      filters: exchanges.map(e => ({ text: e.display_name, value: e.display_name })),
-      onFilter: (value, record) => record.exchange_name === value,
-    },
-    {
-      title: '资金费率', dataIndex: 'rate_pct', key: 'rate_pct', width: 130,
-      render: v => {
-        const color = v > 0 ? '#cf1322' : v < 0 ? '#3f8600' : '#666';
-        const label = v > 0 ? '多头付费' : v < 0 ? '空头付费' : '中性';
-        return (
-          <Tooltip title={label}>
-            <span style={{ color, fontWeight: 600 }}>
-              {v > 0 ? '+' : ''}{v.toFixed(4)}%
-            </span>
-          </Tooltip>
-        );
-      },
-      sorter: (a, b) => b.rate_pct - a.rate_pct,
-      defaultSortOrder: 'descend',
-    },
-    {
-      title: '费率绝对值', dataIndex: 'rate_pct', key: 'abs_rate',
-      render: v => <Tag color={Math.abs(v) > 0.1 ? 'red' : Math.abs(v) > 0.05 ? 'orange' : 'default'}>
-        {Math.abs(v).toFixed(4)}%
-      </Tag>,
-      sorter: (a, b) => Math.abs(b.rate_pct) - Math.abs(a.rate_pct),
-      width: 130,
-    },
-    {
-      title: '年化 (3次/天)', key: 'annualized',
-      render: (_, r) => {
-        const ann = r.rate_pct * 3 * 365;
-        return <span style={{ color: ann > 10 ? '#1677ff' : '#666', fontWeight: ann > 10 ? 600 : 400 }}>
-          {ann.toFixed(1)}%
-        </span>;
-      },
-      sorter: (a, b) => Math.abs(b.rate_pct) - Math.abs(a.rate_pct),
-      width: 140,
-    },
-    {
-      title: '24h交易量(U)', dataIndex: 'volume_24h', key: 'volume_24h', width: 140,
-      render: v => v > 0
-        ? <span style={{ color: '#666' }}>{v >= 1e9 ? `${(v/1e9).toFixed(1)}B` : v >= 1e6 ? `${(v/1e6).toFixed(1)}M` : `${(v/1e3).toFixed(0)}K`}</span>
-        : <span style={{ color: '#ccc' }}>-</span>,
-      sorter: (a, b) => (b.volume_24h || 0) - (a.volume_24h || 0),
-    },
-    {
-      title: '下次结算', dataIndex: 'next_funding_time', key: 'next_funding_time', width: 160,
-      render: v => fmtTime(v),
-    },
-  ];
+  const columns = buildFundingColumns(exchanges);
 
   return (
     <div className="kinetic-page kinetic-funding">
@@ -133,7 +84,9 @@ export default function FundingRates({ wsData }) {
         <Space>
           <FilterOutlined />
           <span>资金费率监控</span>
-          <Badge count={rates.length} overflowCount={9999} style={{ backgroundColor: '#1677ff' }} />
+          <span className="kinetic-counter-badge">
+            <Badge count={rates.length} overflowCount={9999} />
+          </span>
         </Space>
       }
       extra={
@@ -147,7 +100,7 @@ export default function FundingRates({ wsData }) {
       }
     >
       {/* Filter Row */}
-      <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+      <Row gutter={[16, 16]} className="kinetic-funding-filter-row">
         <Col span={6}>
           <Input
             placeholder="搜索交易对，如 BTC"
@@ -189,7 +142,7 @@ export default function FundingRates({ wsData }) {
           />
         </Col>
         <Col span={3}>
-          <Button type="primary" onClick={applyFilters} icon={<FilterOutlined />}>
+          <Button className="kinetic-filter-apply-btn" onClick={applyFilters} icon={<FilterOutlined />}>
             筛选
           </Button>
         </Col>
@@ -199,16 +152,29 @@ export default function FundingRates({ wsData }) {
       </Row>
 
       <Table
+        className="kinetic-funding-table"
         dataSource={rates}
         columns={columns}
         rowKey={(r) => `${r.exchange_id}-${r.symbol}`}
         loading={loading}
         size="small"
-        pagination={{ pageSize: 20, showSizeChanger: true, showTotal: t => `共 ${t} 条` }}
+        pagination={{
+          current: page,
+          pageSize,
+          showSizeChanger: true,
+          pageSizeOptions: [20, 50, 100, 200],
+          showTotal: (t, range) => `${range[0]}-${range[1]} / ${t}`,
+          onChange: (nextPage, nextPageSize) => {
+            if (nextPageSize !== pageSize) {
+              setPageSize(nextPageSize);
+              setPage(1);
+              return;
+            }
+            setPage(nextPage);
+          },
+        }}
         scroll={{ x: 900 }}
-        rowClassName={r => Math.abs(r.rate_pct) > 0.1 ? 'high-rate-row' : ''}
       />
-      <style>{`.high-rate-row { background: #fff7e6 !important; }`}</style>
       </Card>
     </div>
   );

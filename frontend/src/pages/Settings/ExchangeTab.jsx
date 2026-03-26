@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   Button,
   Card,
   Form,
@@ -27,6 +28,7 @@ import {
   deleteExchange,
   updateExchange,
 } from '../../services/endpoints/exchangesApi';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 import {
   useSettingsExchangesQuery,
   useSupportedExchangesQuery,
@@ -117,7 +119,7 @@ export default function ExchangeTab() {
       dataIndex: 'display_name',
       render: (v, r) => (
         <Space>
-          {v}
+          <ExchangeLogoName name={v || r.name} exchangeId={r.name} />
           <Tag>{r.name}</Tag>
         </Space>
       ),
@@ -165,7 +167,7 @@ export default function ExchangeTab() {
       title={(
         <Space>
           <GlobalOutlined />
-          交易所管理
+          交易与账户 API（仅交易写侧必需）
         </Space>
       )}
       extra={(
@@ -174,6 +176,13 @@ export default function ExchangeTab() {
         </Button>
       )}
     >
+      <Alert
+        type="info"
+        showIcon
+        style={{ marginBottom: 12 }}
+        message="机会展示行情来自统一 marketdata 源"
+        description="仅交易下单、持仓与账户资产查询需要配置交易与账户 API Key。"
+      />
       <section className="kinetic-exchange-connectivity">
         <div className="connectivity-head">
           <h4>

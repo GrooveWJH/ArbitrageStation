@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import DevOverlay from '../../components/DevOverlay';
 import { Alert, Card, Col, Row } from 'antd';
 import {
   useDashboardAccountOverviewQuery,
+  useDashboardHealthQuery,
   useDashboardOpportunitiesQuery,
   useDashboardPnlSummaryQuery,
   useDashboardSpotOpportunitiesQuery,
@@ -29,12 +29,16 @@ export default function Dashboard({ wsData }) {
   const spotOpportunitiesQuery = useDashboardSpotOpportunitiesQuery(minVolume, minSpotVolume);
   const tradeLogsQuery = useDashboardTradeLogsQuery(20);
   const accountOverviewQuery = useDashboardAccountOverviewQuery();
+  const healthQuery = useDashboardHealthQuery();
 
   const pnlSummary = pnlSummaryQuery.data || {};
   const baseOpportunities = opportunitiesQuery.data || [];
   const spotOpportunities = spotOpportunitiesQuery.data || [];
   const logs = tradeLogsQuery.data || [];
   const accountData = accountOverviewQuery.data || [];
+  const marketRead = healthQuery.data?.market_read || {};
+  const marketReadStaleness = Number(marketRead.cache_staleness_sec || 0);
+  const marketReadDegraded = !marketRead.last_pull_ms || marketReadStaleness > 10;
   const accountLoading = (!accountOverviewQuery.isFetched && accountOverviewQuery.isLoading) || accountRefreshLoading;
 
   const handleMinVolumeChange = (v) => {
@@ -136,8 +140,8 @@ export default function Dashboard({ wsData }) {
       }
 
       if (ex.error) out.errorExchangeCount += 1;
+      else if (ex.warning) out.warningExchangeCount += 1;
       else out.healthyExchangeCount += 1;
-      if (ex.warning) out.warningExchangeCount += 1;
 
       const positions = Array.isArray(ex.positions) ? ex.positions : [];
       out.positionCount += positions.length;
@@ -160,6 +164,8 @@ export default function Dashboard({ wsData }) {
   const accountTrendStart = accountTrend.length > 0 ? toNumber(accountTrend[0].total_usdt) : null;
   const accountTrendEnd = accountTrend.length > 0 ? toNumber(accountTrend[accountTrend.length - 1].total_usdt) : null;
   const accountTrendDelta = accountTrendStart == null || accountTrendEnd == null ? null : accountTrendEnd - accountTrendStart;
+  const tradingApiConfiguredCount = accountData.filter((ex) => Boolean(ex?.trading_api_configured)).length;
+  const accountApiUnconfigured = accountData.length > 0 && tradingApiConfiguredCount === 0;
   const accountTrendData = useMemo(() => accountTrend.map((p) => ({ time: p.time, total_usdt: p.total_usdt })), [accountTrend]);
   const accountTrendConfig = {
     data: accountTrendData,
@@ -175,10 +181,64 @@ export default function Dashboard({ wsData }) {
   const spotOppColumns = useMemo(() => buildSpotOppColumns(), []);
   const logColumns = useMemo(() => buildLogColumns(), []);
   const emergencyLogs = logs.filter((l) => l.action === 'emergency_close');
-  const latestLogTs = logs[0]?.created_at || logs[0]?.ts || null;
+  const networkStatus = useMemo(() => {
+    const healthy = Number(accountSummary?.healthyExchangeCount || 0);
+    const warning = Number(accountSummary?.warningExchangeCount || 0);
+    const error = Number(accountSummary?.errorExchangeCount || 0);
+    const latestPullMs = Math.max(
+      Number(marketRead?.last_pull_ms || 0),
+      Number(marketRead?.funding_last_pull_ms || 0),
+      Number(marketRead?.volume_last_pull_ms || 0),
+      Number(marketRead?.opportunity_last_pull_ms || 0),
+    );
+    const refreshText = latestPullMs > 0 ? new Date(latestPullMs).toLocaleTimeString([], { hour12: false }) : '--';
+    const staleSeconds = latestPullMs > 0 ? Math.max(0, (Date.now() - latestPullMs) / 1000) : null;
+    const staleText = staleSeconds == null ? '--' : `${staleSeconds.toFixed(1)}s`;
+
+    if (error > 0 || marketReadDegraded) {
+      return {
+        tone: 'is-error',
+        title: '部分节点异常',
+        healthy,
+        warning,
+        error,
+        refreshText,
+        staleText,
+      };
+    }
+    if (warning > 0) {
+      return {
+        tone: 'is-warning',
+        title: '存在告警节点',
+        healthy,
+        warning,
+        error,
+        refreshText,
+        staleText,
+      };
+    }
+    return {
+      tone: 'is-healthy',
+      title: '全部节点运行正常',
+      healthy,
+      warning,
+      error,
+      refreshText,
+      staleText,
+    };
+  }, [accountSummary, marketRead, marketReadDegraded]);
 
   return (
     <div className="kinetic-page kinetic-dashboard">
+      {marketReadDegraded && (
+        <Alert
+          message="行情源降级"
+          description="marketdata 源暂时不可达或已过期，页面显示可能为最近缓存。"
+          type="warning"
+          showIcon
+          style={{ marginBottom: 12 }}
+        />
+      )}
       {emergencyLogs.length > 0 && (
         <Alert
           message={`有 ${emergencyLogs.length} 笔风控平仓记录`}
@@ -192,20 +252,20 @@ export default function Dashboard({ wsData }) {
 
       <div className="kinetic-dashboard-shell">
         <Row gutter={[16, 16]} className="kinetic-dashboard-top-row">
-          <Col xs={24} xl={16}>
+          <Col xs={24} xl={17}>
             <TopMetricsRow
               pnlSummary={pnlSummary}
               accountSummary={accountSummary}
               emergencyCount={emergencyLogs.length}
             />
           </Col>
-          <Col xs={24} xl={8}>
+          <Col xs={24} xl={7}>
             <PnlQualityBar pnlSummary={pnlSummary} />
           </Col>
         </Row>
 
         <Row gutter={[16, 16]} className="kinetic-dashboard-main-row">
-          <Col xs={24} xl={16}>
+          <Col xs={24} xl={17}>
             <OpportunitiesSection
               opportunities={opportunities}
               spotOpportunities={spotOpportunities}
@@ -218,20 +278,20 @@ export default function Dashboard({ wsData }) {
               compact
             />
           </Col>
-          <Col xs={24} xl={8}>
+          <Col xs={24} xl={7}>
             <div className="kinetic-dashboard-right-stack">
               <RecentTradesCard logs={logs} columns={logColumns} compact />
-              <DevOverlay>
-              <Card className="kinetic-panel-card kinetic-network-pulse">
+              <Card className={`kinetic-panel-card kinetic-network-pulse ${networkStatus.tone}`}>
                 <div className="pulse-label">全局网络状态</div>
-                <h4>全部节点运行正常</h4>
+                <h4>{networkStatus.title}</h4>
                 <div className="pulse-meta">
-                  <span>正常: {Number(accountSummary?.healthyExchangeCount || 0)}</span>
-                  <span>告警: {Number(accountSummary?.warningExchangeCount || 0)}</span>
-                  <span>最近日志: {latestLogTs ? new Date(latestLogTs).toLocaleTimeString([], { hour12: false }) : '--'}</span>
+                  <span className="pulse-chip is-healthy">正常: {networkStatus.healthy}</span>
+                  <span className="pulse-chip is-warning">告警: {networkStatus.warning}</span>
+                  <span className="pulse-chip is-error">异常: {networkStatus.error}</span>
+                  <span className="pulse-chip">最近刷新: {networkStatus.refreshText}</span>
+                  <span className="pulse-chip">数据滞后: {networkStatus.staleText}</span>
                 </div>
               </Card>
-              </DevOverlay>
             </div>
           </Col>
         </Row>
@@ -239,6 +299,8 @@ export default function Dashboard({ wsData }) {
         <AccountSection
           accountLoading={accountLoading}
           accountData={accountData}
+          accountApiUnconfigured={accountApiUnconfigured}
+          tradingApiConfiguredCount={tradingApiConfiguredCount}
           accountSummary={accountSummary}
           accountTrendData={accountTrendData}
           accountTrendConfig={accountTrendConfig}

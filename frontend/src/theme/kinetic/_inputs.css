@@ -60,11 +60,24 @@
 
 .kinetic-app .ant-input::placeholder,
 .kinetic-app .ant-select-selection-placeholder,
+.kinetic-app .ant-select-selection-search-input::placeholder,
 .kinetic-app .ant-input-number-input::placeholder,
-.kinetic-app .ant-picker input::placeholder {
-  color: rgba(145, 170, 235, 0.75) !important;
+.kinetic-app .ant-picker input::placeholder,
+.kinetic-app .ant-input-password input::placeholder,
+.kinetic-app textarea.ant-input::placeholder {
+  color: var(--kinetic-input-placeholder) !important;
   font-style: italic;
   font-size: 12px;
+}
+
+.kinetic-app .ant-input-password-icon,
+.kinetic-app .ant-input-clear-icon {
+  color: rgba(165, 198, 255, 0.82) !important;
+}
+
+.kinetic-app .ant-input-password-icon:hover,
+.kinetic-app .ant-input-clear-icon:hover {
+  color: var(--kinetic-primary) !important;
 }
 
 /* ── InputNumber Step Handlers (Up/Down Arrows) ───────────── */

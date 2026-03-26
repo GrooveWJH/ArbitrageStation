@@ -6,7 +6,6 @@ import {
   Modal,
   Row,
   Segmented,
-  Space,
   Spin,
   Tag,
 } from 'antd';
@@ -24,16 +23,19 @@ export default function KlineModal({
 }) {
   return (
     <Modal
+      className="kinetic-spread-kline-modal"
       open={!!klineModal}
       onCancel={onClose}
       footer={null}
       width={1000}
       title={klineModal && (
-        <Space>
-          <LineChartOutlined />
-          <span>{klineModal.symbol} 价差走势</span>
+        <div className="kinetic-spread-kline-title">
+          <span className="kinetic-spread-kline-title-main">
+            <LineChartOutlined />
+            <span>{klineModal.symbol} 价差走势</span>
+          </span>
           {klineData && (
-            <span style={{ fontWeight: 400, color: '#888', fontSize: 13 }}>
+            <span className="kinetic-spread-kline-title-sub">
               {klineData.exchange_a} − {klineData.exchange_b}
             </span>
           )}
@@ -43,9 +45,13 @@ export default function KlineModal({
               ? ((latest - klineData.stats.mean) / klineData.stats.std).toFixed(1)
               : null;
             if (!z) return null;
-            return <Tag color={z >= 1.5 ? 'red' : z >= 1 ? 'orange' : 'green'} style={{ marginLeft: 8 }}>z={z}</Tag>;
+            return (
+              <Tag className={`kinetic-spread-kline-ztag ${z >= 1.5 ? 'is-hot' : z >= 1 ? 'is-warn' : 'is-cool'}`}>
+                z={z}
+              </Tag>
+            );
           })()}
-        </Space>
+        </div>
       )}
       destroyOnClose
     >

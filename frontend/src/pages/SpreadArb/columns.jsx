@@ -6,6 +6,7 @@ import {
   Tooltip,
 } from 'antd';
 import { CloseCircleOutlined } from '@ant-design/icons';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 import { fmtTime } from '../../utils/time';
 import { PnlCell, statusTag } from './renderers';
 import { fmtPrice } from './utils';
@@ -31,7 +32,9 @@ export function buildOpenColumns({
       width: 150,
       render: (_, row) => (
         <div>
-          <div style={{ fontWeight: 600 }}>{row.short_exchange_name}</div>
+          <div style={{ fontWeight: 600 }}>
+            <ExchangeLogoName name={row.short_exchange_name} exchangeId={row.short_exchange_id} />
+          </div>
           <div style={{ fontSize: 11, color: '#888' }}>入场 {fmtPrice(row.short_entry_price)}</div>
           <div style={{ fontSize: 11, color: '#1677ff' }}>现价 {fmtPrice(row.short_current_price)}</div>
         </div>
@@ -42,7 +45,9 @@ export function buildOpenColumns({
       width: 150,
       render: (_, row) => (
         <div>
-          <div style={{ fontWeight: 600 }}>{row.long_exchange_name}</div>
+          <div style={{ fontWeight: 600 }}>
+            <ExchangeLogoName name={row.long_exchange_name} exchangeId={row.long_exchange_id} />
+          </div>
           <div style={{ fontSize: 11, color: '#888' }}>入场 {fmtPrice(row.long_entry_price)}</div>
           <div style={{ fontSize: 11, color: '#1677ff' }}>现价 {fmtPrice(row.long_current_price)}</div>
         </div>
@@ -125,8 +130,18 @@ export function buildOpenColumns({
 export function buildHistoryColumns() {
   return [
     { title: '交易对', dataIndex: 'symbol', width: 130, render: (s) => <Tag color="blue">{s}</Tag> },
-    { title: '做空', dataIndex: 'short_exchange_name', width: 100 },
-    { title: '做多', dataIndex: 'long_exchange_name', width: 100 },
+    {
+      title: '做空',
+      dataIndex: 'short_exchange_name',
+      width: 100,
+      render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.short_exchange_id} />,
+    },
+    {
+      title: '做多',
+      dataIndex: 'long_exchange_name',
+      width: 100,
+      render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.long_exchange_id} />,
+    },
     {
       title: '入场价差',
       dataIndex: 'entry_spread_pct',

@@ -158,3 +158,239 @@
   text-transform: uppercase;
   font-family: 'Space Grotesk', sans-serif;
 }
+
+.kinetic-num {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.kinetic-num-muted,
+.kinetic-num-neutral {
+  color: var(--kinetic-text-variant);
+  font-weight: 500;
+}
+
+.kinetic-num-positive {
+  color: var(--kinetic-tertiary-dim);
+}
+
+.kinetic-num-strong {
+  color: var(--kinetic-primary);
+}
+
+.kinetic-num-warning {
+  color: #e0bf6d;
+}
+
+.kinetic-num-negative {
+  color: var(--kinetic-error);
+}
+
+.kinetic-num-volume {
+  color: var(--kinetic-text-variant);
+  font-weight: 500;
+}
+
+.kinetic-countdown {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.kinetic-countdown-danger {
+  color: var(--kinetic-error);
+  font-weight: 700;
+}
+
+.kinetic-countdown-warn {
+  color: #e0bf6d;
+  font-weight: 600;
+}
+
+.kinetic-countdown-neutral {
+  color: var(--kinetic-text-variant);
+}
+
+.kinetic-countdown-tag.ant-tag {
+  margin-inline-end: 0;
+  font-size: 10px;
+  line-height: 18px;
+  letter-spacing: 0.06em;
+}
+
+.kinetic-countdown-tag.ant-tag.is-settled {
+  background: rgba(238, 125, 119, 0.12);
+  border-left-color: var(--kinetic-error);
+  color: var(--kinetic-error);
+}
+
+.kinetic-countdown-tag.ant-tag.is-settled.is-settled-flash {
+  animation: kinetic-settled-blink 1s ease-in-out 3;
+}
+
+.kinetic-countdown-tag.ant-tag.is-refresh-pending {
+  position: relative;
+  overflow: hidden;
+  --kinetic-refresh-progress: 0%;
+  background: rgba(224, 191, 109, 0.18);
+  border-left-color: rgba(224, 191, 109, 0.9);
+  color: #f2d387;
+}
+
+.kinetic-countdown-tag.ant-tag.is-refresh-pending.has-progress::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: var(--kinetic-refresh-progress);
+  background: linear-gradient(90deg, rgba(224, 191, 109, 0.18), rgba(224, 191, 109, 0.36));
+  pointer-events: none;
+}
+
+.kinetic-countdown-tag-label {
+  position: relative;
+  z-index: 1;
+}
+
+.kinetic-countdown-tag.ant-tag.is-unsynced {
+  background: rgba(71, 196, 255, 0.12);
+  border-left-color: rgba(123, 208, 255, 0.62);
+  color: var(--kinetic-primary);
+}
+
+@keyframes kinetic-settled-blink {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(238, 125, 119, 0);
+    filter: brightness(1);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(238, 125, 119, 0.24);
+    filter: brightness(1.2);
+  }
+}
+
+.kinetic-leg-cell {
+  border-radius: 2px;
+  padding: 2px 6px;
+  transition: background-color 120ms ease;
+}
+
+.kinetic-leg-cell.is-mismatch {
+  background: rgba(224, 191, 109, 0.08);
+}
+
+.kinetic-leg-sub {
+  font-size: 11px;
+  margin-top: 2px;
+  color: var(--kinetic-text-variant);
+}
+
+.kinetic-leg-sub.is-warning {
+  color: #e0bf6d;
+}
+
+.kinetic-price-note {
+  margin-top: 1px;
+  font-size: 11px;
+  color: rgba(222, 229, 255, 0.74);
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.kinetic-exchange-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  line-height: 1;
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.kinetic-exchange-logo {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: contain;
+  object-position: center;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(166, 188, 246, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(8, 20, 52, 0.42),
+    0 2px 5px rgba(2, 10, 28, 0.32);
+  padding: 1px;
+  flex: 0 0 auto;
+}
+
+.kinetic-exchange-logo-fallback {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(145, 170, 235, 0.68);
+  box-shadow: 0 0 0 2px rgba(43, 70, 128, 0.45);
+  flex: 0 0 auto;
+}
+
+.kinetic-exchange-name {
+  color: inherit;
+  white-space: nowrap;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.kinetic-exchange-suffix {
+  color: var(--kinetic-text-variant);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.kinetic-exchange-chip.ant-tag {
+  margin-inline-end: 2px;
+}
+
+.kinetic-exchange-chip.ant-tag .kinetic-exchange-logo {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+.kinetic-exchange-chip.ant-tag.is-warning {
+  border-left-color: #e0bf6d;
+  color: #e0bf6d;
+  background: rgba(224, 191, 109, 0.12);
+}
+
+.kinetic-exchange-chip.ant-tag .kinetic-exchange-name,
+.kinetic-exchange-chip.ant-tag .kinetic-exchange-suffix {
+  color: inherit;
+}
+
+.kinetic-exchange-identity[data-exchange-key='binance'] .kinetic-exchange-logo {
+  background: #111f4a;
+  border-color: rgba(240, 185, 11, 0.5);
+  object-fit: contain;
+  padding: 1px;
+}
+
+.kinetic-exchange-identity[data-exchange-key='okx'] .kinetic-exchange-logo {
+  object-fit: cover;
+  object-position: center;
+  padding: 0;
+}
+
+.kinetic-exchange-identity[data-exchange-key='mexc'] .kinetic-exchange-logo {
+  object-fit: cover;
+  object-position: 56% 50%;
+  padding: 0;
+}
+
+.kinetic-pair-chip.ant-tag {
+  letter-spacing: 0.06em;
+}
+
+.kinetic-time {
+  color: rgba(222, 229, 255, 0.78);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+}

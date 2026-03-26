@@ -34,6 +34,11 @@ async function fetchDashboardAccountOverview() {
   return Array.isArray(res.data) ? res.data : [];
 }
 
+async function fetchDashboardHealth() {
+  const res = await api.get("/health");
+  return res.data || {};
+}
+
 export function useDashboardPnlSummaryQuery() {
   return useQuery({
     queryKey: ["dashboard", "pnl-summary"],
@@ -69,6 +74,15 @@ export function useDashboardAccountOverviewQuery() {
     queryKey: ["dashboard", "account-overview"],
     queryFn: fetchDashboardAccountOverview,
     refetchInterval: 5000,
+    refetchIntervalInBackground: true,
+  });
+}
+
+export function useDashboardHealthQuery() {
+  return useQuery({
+    queryKey: ["dashboard", "health"],
+    queryFn: fetchDashboardHealth,
+    refetchInterval: 3000,
     refetchIntervalInBackground: true,
   });
 }

@@ -9,6 +9,7 @@ import {
   Tag,
   Tooltip,
 } from 'antd';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 import { fmtTime } from '../../utils/time';
 import { TermLabel } from '../../components/TermHint';
 
@@ -117,7 +118,12 @@ export default function StrategyDetailDrawer({
               scroll={{ x: 980 }}
               columns={[
                 { title: '结算时间', dataIndex: 'funding_time', width: 170, render: (v) => fmtTime(v) },
-                { title: '交易所', dataIndex: 'exchange', width: 100 },
+                {
+                  title: '交易所',
+                  dataIndex: 'exchange',
+                  width: 100,
+                  render: (v, r) => <ExchangeLogoName name={v} exchangeId={r.exchange_id || r.exchange} />,
+                },
                 { title: '交易对', dataIndex: 'symbol', width: 140 },
                 { title: '金额', dataIndex: 'amount_usdt', width: 110, render: (v) => pnlRender(v, 6) },
                 {

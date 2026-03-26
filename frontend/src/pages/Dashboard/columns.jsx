@@ -1,48 +1,120 @@
 import React from 'react';
 import { Space, Tag, Tooltip } from 'antd';
+import { ThunderboltOutlined, WarningOutlined } from '@ant-design/icons';
+import ExchangeLogoName from '../../components/ExchangeLogoName';
 import { fmtTime } from '../../utils/time';
 import { TermLabel } from '../../components/TermHint';
-import { formatCountdown, formatVolume } from './utils';
+import {
+  formatCountdown,
+  formatPairBase,
+  formatVolume,
+  getOpportunitySignal,
+} from './utils';
 import { LongCell, PriceDiffCell, ShortCell } from './OpportunityCells';
+
+function signedPct(v, digits = 4) {
+  const n = Number(v || 0);
+  return `${n > 0 ? '+' : ''}${n.toFixed(digits)}%`;
+}
+
+function toneClass(v, { high = 0, medium = 0 } = {}) {
+  const n = Number(v || 0);
+  if (n < 0) return 'kinetic-num-negative';
+  if (high > 0 && n >= high) return 'kinetic-num-strong';
+  if (medium > 0 && n >= medium) return 'kinetic-num-positive';
+  if (n > 0) return 'kinetic-num-positive';
+  return 'kinetic-num-neutral';
+}
+
+function annualizedToneClass(v) {
+  const n = Number(v || 0);
+  if (n < 0) return 'kinetic-num-negative';
+  if (n >= 250) return 'kinetic-num-positive';
+  if (n >= 100) return 'kinetic-num-strong';
+  if (n > 0) return 'kinetic-num-positive';
+  return 'kinetic-num-neutral';
+}
 
 export function buildOppColumns() {
   return [
-    { title: '交易对', dataIndex: 'symbol', key: 'symbol', render: (v) => <Tag color="blue">{v}</Tag> },
+    {
+      title: '信号',
+      key: 'signal',
+      width: 140,
+      align: 'center',
+      render: (_, r) => {
+        const signal = getOpportunitySignal(r);
+        if (signal === 'risk') {
+          return (
+            <Tag className="kinetic-opportunity-signal is-risk" icon={<WarningOutlined />}>
+              风险
+            </Tag>
+          );
+        }
+        if (signal === 'hot') {
+          return (
+            <Tag className="kinetic-opportunity-signal is-hot" icon={<ThunderboltOutlined />}>
+              高收益
+            </Tag>
+          );
+        }
+        return <span className="kinetic-opportunity-signal-empty">—</span>;
+      },
+    },
+    {
+      title: '交易对 · USDT',
+      dataIndex: 'symbol',
+      key: 'symbol',
+      width: 184,
+      render: (v) => <Tag color="blue" className="kinetic-pair-chip kinetic-opp-pair-chip">{formatPairBase(v)}</Tag>,
+    },
     { title: '做多腿', key: 'long', render: (_, r) => <LongCell record={r} /> },
     { title: '做空腿', key: 'short', render: (_, r) => <ShortCell record={r} /> },
     {
       title: '费率差',
       dataIndex: 'rate_diff_pct',
       key: 'rate_diff_pct',
-      render: (v) => <Tag color="green">{v.toFixed(4)}%</Tag>,
-      sorter: (a, b) => b.rate_diff_pct - a.rate_diff_pct,
+      width: 146,
+      align: 'center',
+      className: 'kinetic-col-numeric',
+      render: (v) => <span className={`kinetic-num ${toneClass(v, { medium: 0.01 })}`}>{signedPct(v, 4)}</span>,
+      sorter: (a, b) => a.rate_diff_pct - b.rate_diff_pct,
     },
     {
       title: <TermLabel label="年化" term="current_annualized" />,
       dataIndex: 'annualized_pct',
       key: 'annualized_pct',
-      render: (v) => <span style={{ color: '#1677ff', fontWeight: 600 }}>{v.toFixed(2)}%</span>,
+      width: 146,
+      align: 'center',
+      className: 'kinetic-col-numeric',
+      render: (v) => <span className={`kinetic-num ${annualizedToneClass(v)}`}>{signedPct(v, 2)}</span>,
+      sorter: (a, b) => (a.annualized_pct || 0) - (b.annualized_pct || 0),
     },
-    { title: '合约价差', key: 'price_diff_pct', render: (_, r) => <PriceDiffCell record={r} /> },
+    { title: '合约价差', key: 'price_diff_pct', width: 146, align: 'center', className: 'kinetic-col-numeric', render: (_, r) => <PriceDiffCell record={r} />, sorter: (a, b) => (a.price_diff_pct || 0) - (b.price_diff_pct || 0) },
     {
       title: '最小24h量',
       dataIndex: 'min_volume_24h',
       key: 'min_volume_24h',
-      render: (v) => (v > 0 ? <span style={{ color: '#888' }}>{formatVolume(v)}</span> : '-'),
-      sorter: (a, b) => (b.min_volume_24h || 0) - (a.min_volume_24h || 0),
+      width: 152,
+      align: 'center',
+      className: 'kinetic-col-numeric',
+      render: (v) => (v > 0 ? <span className="kinetic-num kinetic-num-volume">{formatVolume(v)}</span> : <span className="kinetic-num kinetic-num-muted">-</span>),
+      sorter: (a, b) => (a.min_volume_24h || 0) - (b.min_volume_24h || 0),
     },
   ];
 }
 
 export function buildSpotOppColumns() {
   return [
-    { title: '交易对', dataIndex: 'symbol', key: 'symbol', render: (v) => <Tag color="blue">{v}</Tag> },
+    { title: '交易对 · USDT', dataIndex: 'symbol', key: 'symbol', render: (v) => <Tag color="blue">{formatPairBase(v)}</Tag> },
     {
       title: '交易所',
       key: 'exchange_name',
       render: (_, r) => (
         <Space size={4}>
-          <Tag>{r.exchange_name}</Tag>
+          <Tag className="kinetic-exchange-chip">
+            <ExchangeLogoName name={r.exchange_name} exchangeId={r.exchange_id} />
+          </Tag>
           {r.has_spot_market === false && (
             <Tooltip title={`${r.symbol.split(':')[0]} 在 ${r.exchange_name} 无现货交易对，无法做现货对冲`}>
               <Tag color="red">无现货</Tag>
@@ -56,18 +128,15 @@ export function buildSpotOppColumns() {
       dataIndex: 'funding_rate_pct',
       key: 'funding_rate_pct',
       render: (v) => (
-        <span style={{ color: v > 0 ? '#cf1322' : '#3f8600', fontWeight: 600 }}>
-          {v > 0 ? '+' : ''}
-          {v.toFixed(4)}%
-        </span>
+        <span className={`kinetic-num ${v > 0 ? 'kinetic-num-negative' : 'kinetic-num-positive'}`}>{signedPct(v, 4)}</span>
       ),
     },
     {
       title: <TermLabel label="年化" term="current_annualized" />,
       dataIndex: 'annualized_pct',
       key: 'annualized_pct',
-      render: (v) => <span style={{ color: '#1677ff', fontWeight: 600 }}>{v.toFixed(2)}%</span>,
-      sorter: (a, b) => b.annualized_pct - a.annualized_pct,
+      render: (v) => <span className={`kinetic-num ${annualizedToneClass(v)}`}>{signedPct(v, 2)}</span>,
+      sorter: (a, b) => a.annualized_pct - b.annualized_pct,
     },
     { title: '动作', dataIndex: 'action', key: 'action', render: (v) => <Tag color="cyan">{v}</Tag> },
     { title: '说明', dataIndex: 'note', key: 'note', render: (v) => <span style={{ color: '#888' }}>{v}</span> },
@@ -76,14 +145,14 @@ export function buildSpotOppColumns() {
       dataIndex: 'volume_24h',
       key: 'volume_24h',
       render: (v) => (v > 0 ? <span style={{ color: '#666' }}>{formatVolume(v)}</span> : '-'),
-      sorter: (a, b) => (b.volume_24h || 0) - (a.volume_24h || 0),
+      sorter: (a, b) => (a.volume_24h || 0) - (b.volume_24h || 0),
     },
     {
       title: '现货24h量',
       dataIndex: 'spot_volume_24h',
       key: 'spot_volume_24h',
       render: (v) => (v > 0 ? <span style={{ color: '#666' }}>{formatVolume(v)}</span> : '-'),
-      sorter: (a, b) => (b.spot_volume_24h || 0) - (a.spot_volume_24h || 0),
+      sorter: (a, b) => (a.spot_volume_24h || 0) - (b.spot_volume_24h || 0),
     },
     {
       title: '下次结算',
@@ -112,7 +181,14 @@ export function buildLogColumns() {
         return <Tag color={color}>{label}</Tag>;
       },
     },
-    { title: '交易所', dataIndex: 'exchange', key: 'exchange' },
+    {
+      title: '交易所',
+      dataIndex: 'exchange',
+      key: 'exchange',
+      render: (v, r) => (
+        <ExchangeLogoName name={v} exchangeId={r.exchange_id || r.exchange} />
+      ),
+    },
     { title: '交易对', dataIndex: 'symbol', key: 'symbol' },
     {
       title: '方向',
